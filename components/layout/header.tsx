@@ -1,5 +1,4 @@
 "use client";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,44 +28,70 @@ export function AdminHeader() {
   };
 
   return (
-    <header className="h-16 bg-linear-to-r from-xb-primary to-xb-secondary dark:bg-linear-to-r dark:from-card dark:to-xb-primary fixed top-0 left-64 w-[calc(100%-16rem)] z-10">
-      <div className="flex h-16 items-center justify-between px-6">
-        <div className="flex items-center space-x-4" />
+    <header className="h-20 bg-gradient-to-r from-xb-primary to-xb-secondary dark:from-card dark:to-card fixed top-0 left-64 w-[calc(100%-16rem)] z-10 shadow-lg backdrop-blur-sm border-b border-white/10 dark:border-white/5">
+      <div className="flex h-20 items-center justify-between px-6">
+        {/* Left Section - You can add breadcrumbs or title here */}
+        <div className="flex items-center space-x-4">
+          <h1 className="text-lg font-semibold text-white/90">Dashboard</h1>
+        </div>
 
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="icon" className="relative">
-            <Bell className="h-5 w-5 " />
-            <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs bg-destructive text-white">
+        {/* Right Section - Actions */}
+        <div className="flex items-center space-x-3">
+          {/* Notifications Button */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="relative hover:bg-white/10 text-white/80 hover:text-white transition-all duration-200 rounded-lg h-10 w-10 group"
+          >
+            <Bell className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+            <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-red-500 text-white border-2 border-xb-primary dark:border-card animate-pulse shadow-lg">
               3
             </Badge>
           </Button>
 
-          <Button variant="outline" size="icon" onClick={toggleTheme}>
-            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 " />
-            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-white" />
+          {/* Theme Toggle Button */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleTheme}
+            className="hover:bg-white/10 text-white/80 hover:text-white transition-all duration-200 rounded-lg h-10 w-10 group relative overflow-hidden"
+          >
+            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 group-hover:scale-110" />
+            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 group-hover:scale-110" />
             <span className="sr-only">Toggle theme</span>
           </Button>
 
+          {/* User Menu Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
-                <User className="h-5 w-5" />
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="hover:bg-white/10 text-white/80 hover:text-white transition-all duration-200 rounded-lg h-10 w-10 group"
+              >
+                <User className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="bg-background border-border"
+              className="bg-background border-border w-48 shadow-xl rounded-lg"
             >
-              <DropdownMenuItem className="text-foreground">
+              <div className="px-3 py-2 border-b border-border">
+                <p className="text-sm font-medium text-foreground">Admin User</p>
+                <p className="text-xs text-muted-foreground">admin@example.com</p>
+              </div>
+              <DropdownMenuItem className="text-foreground cursor-pointer hover:bg-accent transition-colors">
+                <User className="mr-2 h-4 w-4" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-foreground">
-                Settings
+              <DropdownMenuItem className="text-foreground cursor-pointer hover:bg-accent transition-colors">
+                <Bell className="mr-2 h-4 w-4" />
+                Notifications
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-border" />
               <DropdownMenuItem
                 onClick={handleSignOut}
-                className="text-foreground"
+                className="text-destructive cursor-pointer hover:bg-destructive/10 transition-colors"
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign Out

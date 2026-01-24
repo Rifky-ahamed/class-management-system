@@ -225,20 +225,6 @@ const LoginPage = () => {
               </DialogHeader>
             </DialogContent>
           </Dialog>
-
-          <div className="pt-8 text-center space-y-4">
-            <p className="text-xs text-gray-700 flex items-center justify-center cursor-default">
-              Powered by{" "}
-              <SafeImage
-                src="/nexuscore-text.png"
-                onClick={() => window.open("https://www.NexusCore.com", "_blank")}
-                alt="NexusCore"
-                width={100}
-                height={100}
-                className="h-8 w-20 -ml-1.5 cursor-pointer"
-              />
-            </p>
-          </div>
         </div>
       </div>
     </div>

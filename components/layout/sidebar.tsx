@@ -1,13 +1,10 @@
 "use client";
-
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { SafeImage } from "@/components/shared/safe-image";
-
 import {
   BarChart3,
   Landmark,
@@ -86,29 +83,27 @@ export const AdminSidebar = () => {
   };
 
   return (
-    <div className="w-64 bg-xb-primary dark:bg-card fixed top-0 left-0 h-screen">
-      <div className="h-16 border-b border-white/20 dark:border-card">
-        <Link href="/" className="flex items-center space-x-2 py-2 px-4">
-          <div className="flex items-center">
-            <SafeImage
-              src="/your-logo.png"
-              alt="Logo"
-              width={100}
-              height={100}
-              className="h-12 w-12"
-            />
+    <div className="w-64 bg-gradient-to-b from-xb-primary to-xb-secondary dark:from-card dark:to-card fixed top-0 left-0 h-screen flex flex-col shadow-2xl">
+      {/* Header Section */}
+      <div className="h-20 border-b border-white/10 dark:border-white/5 backdrop-blur-sm">
+        <Link href="/" className="flex items-center h-full px-4 group">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center group-hover:bg-white/20 transition-all duration-300 shadow-lg">
+              <GraduationCap className="w-6 h-6 text-white" />
+            </div>
             <div>
-              <span className="font-bold text-lg text-white truncate">
+              <span className="font-bold text-base text-white block leading-tight">
                 Your Business Name
               </span>
-              <p className="text-xs text-white">Admin Core - v1.0.0</p>
+              <p className="text-[10px] text-white/70 font-medium">Admin Core v1.0.0</p>
             </div>
           </div>
         </Link>
       </div>
 
-      <ScrollArea className="flex-1 px-3 py-4">
-        <nav className="space-y-2">
+      {/* Navigation Section */}
+      <ScrollArea className="flex-1 px-3 py-6">
+        <nav className="space-y-1">
           {navigation.map(item => {
             const isActive =
               pathname === item.href ||
@@ -117,17 +112,23 @@ export const AdminSidebar = () => {
             return (
               <Button
                 key={item.name}
-                variant={isActive ? "secondary" : "ghost"}
+                variant="ghost"
                 className={cn(
-                  "w-full justify-start text-white",
+                  "w-full justify-start text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 h-11 rounded-lg font-medium text-sm group relative overflow-hidden",
                   isActive &&
-                    "bg-secondary text-secondary-foreground dark:text-white dark:bg-background",
+                    "bg-white/15 text-white shadow-lg backdrop-blur-sm hover:bg-white/20 border border-white/20"
                 )}
                 asChild
               >
                 <Link href={item.href}>
-                  <item.icon className="mr-2 h-4 w-4" />
-                  {item.name}
+                  {isActive && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r-full" />
+                  )}
+                  <item.icon className={cn(
+                    "mr-3 h-4 w-4 transition-transform duration-200",
+                    isActive ? "scale-110" : "group-hover:scale-110"
+                  )} />
+                  <span className="truncate">{item.name}</span>
                 </Link>
               </Button>
             );
@@ -135,31 +136,16 @@ export const AdminSidebar = () => {
         </nav>
       </ScrollArea>
 
-      <div className="p-3 border-t border-white/20 dark:border-background">
+      {/* Sign Out Section */}
+      <div className="p-3 border-t border-white/10 dark:border-white/5 backdrop-blur-sm">
         <Button
           variant="ghost"
           onClick={handleSignOut}
-          className="w-full justify-start text-white"
+          className="w-full justify-start text-white/80 hover:text-white hover:bg-red-500/20 transition-all duration-200 h-11 rounded-lg font-medium text-sm group"
         >
-          <LogOut className="mr-2 h-4 w-4" />
+          <LogOut className="mr-3 h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
           Sign Out
         </Button>
-      </div>
-
-      <div className="fixed bg-white bottom-0 left-0 w-64 rounded-tr-2xl border-r-5 border-xb-primary dark:border-xb-secondary">
-        <div>
-          <p className="text-xs text-gray-700 flex items-center justify-center cursor-default">
-            Powered by{" "}
-            <SafeImage
-              src="/nexuscore-text.png"
-              onClick={() => window.open("https://www.NexusCore.com", "_blank")}
-              alt="NexusCore"
-              width={100}
-              height={100}
-              className="h-8 w-20 -ml-1.5 cursor-pointer"
-            />
-          </p>
-        </div>
       </div>
     </div>
   );
