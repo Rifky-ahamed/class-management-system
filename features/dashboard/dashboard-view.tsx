@@ -8,9 +8,9 @@ const AdminDashboardView = async () => {
   const stats = await getDashboardStats();
 
   return (
-    <div className="h-[calc(100vh-5rem)] overflow-y-auto space-y-6 p-6">
+    <div className="h-[calc(100vh-5rem)] overflow-hidden flex flex-col space-y-6 p-6">
       {/* Header Section with Gradient Background */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-xb-primary via-xb-secondary to-xb-primary p-6 shadow-xl">
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-xb-primary via-xb-secondary to-xb-primary p-6 shadow-xl flex-shrink-0">
         <div className="absolute inset-0 bg-white/5 backdrop-blur-3xl"></div>
         <div className="relative">
           <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Admin Dashboard</h1>
@@ -24,7 +24,7 @@ const AdminDashboardView = async () => {
       </div>
 
       {/* Stats Cards with Enhanced Design */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0">
         <Card className="border-none shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-card overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
@@ -98,8 +98,8 @@ const AdminDashboardView = async () => {
       {/* Bottom Section with Two Cards */}
       <div className="grid lg:grid-cols-2 gap-4 flex-1 min-h-0">
         {/* Recent Activities */}
-        <Card className="border-none shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
-          <CardHeader className="border-b bg-gradient-to-r from-xb-primary/5 to-transparent py-3">
+        <Card className="border-none shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden">
+          <CardHeader className="border-b bg-gradient-to-r from-xb-primary/5 to-transparent py-3 flex-shrink-0">
             <CardTitle className="flex items-center text-base">
               <Clock className="h-4 w-4 mr-2 text-xb-primary" />
               Recent Activities
@@ -147,8 +147,8 @@ const AdminDashboardView = async () => {
         </Card>
 
         {/* Pending Payments */}
-        <Card className="border-none shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
-          <CardHeader className="border-b bg-gradient-to-r from-destructive/5 to-transparent py-3">
+        <Card className="border-none shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden">
+          <CardHeader className="border-b bg-gradient-to-r from-destructive/5 to-transparent py-3 flex-shrink-0">
             <CardTitle className="flex items-center text-base">
               <TrendingUp className="h-4 w-4 mr-2 text-destructive" />
               Pending Payments
