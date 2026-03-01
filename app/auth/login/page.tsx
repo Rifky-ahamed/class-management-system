@@ -41,7 +41,7 @@ const LoginPage = () => {
     setError("");
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -51,7 +51,6 @@ const LoginPage = () => {
         return;
       }
       router.push("/");
-      
     } catch {
       setError("An unexpected error occurred");
     } finally {
@@ -61,173 +60,267 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen w-full flex">
-      {/* Left Panel - Branding */}
-      <div className="hidden lg:flex w-1/2 bg-linear-to-tr from-xb-primary to-xb-secondary items-center justify-center p-12 relative overflow-hidden">
-        {/* Abstract background effect */}
+
+      {/* ── Left Panel — Brand / Illustration ── */}
+      <div className="hidden lg:flex w-1/2 relative overflow-hidden items-center justify-center p-12
+                      bg-linear-to-br from-edu-900 via-edu-800 to-edu-900">
+
+        {/* decorative background blobs */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-edu-700/30 rounded-full blur-3xl -mr-48 -mt-48" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-edu-600/20 rounded-full blur-3xl -ml-36 -mb-36" />
         <div className="absolute inset-0 bg-linear-to-br from-white/5 to-transparent pointer-events-none" />
 
-        <div className="text-center z-10">
-          <div className="mb-6 flex justify-center">
-            {/* Logo Placeholder - Replace with client's logo */}
-            <SafeImage
-              src="/your-logo-2.png"
-              alt="Logo"
-              width={120}
-              height={120}
-              unoptimized
-              className="h-96 w-96"
-            />
+        {/* geometric accent lines */}
+        <div className="absolute top-1/4 left-8 w-px h-32 bg-linear-to-b from-transparent via-edu-400/40 to-transparent" />
+        <div className="absolute bottom-1/4 right-8 w-px h-32 bg-linear-to-b from-transparent via-edu-400/40 to-transparent" />
+        <div className="absolute top-8 left-1/4 h-px w-32 bg-linear-to-r from-transparent via-edu-400/40 to-transparent" />
+
+        <div className="relative z-10 text-center">
+          {/* Logo */}
+          <div className="mb-8 flex justify-center">
+            <div className="w-24 h-24 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center shadow-2xl border border-white/20">
+              <SafeImage
+                src="/your-logo-2.png"
+                alt="Logo"
+                width={80}
+                height={80}
+                unoptimized
+                className="h-16 w-16 object-contain"
+              />
+            </div>
+          </div>
+
+          {/* brand text */}
+          <h1 className="text-3xl font-bold text-white mb-3 tracking-tight">
+            Class Management
+          </h1>
+          <p className="text-edu-300 text-sm max-w-xs mx-auto leading-relaxed">
+            A centralized platform for managing students, teachers, classes and payments.
+          </p>
+
+          {/* decorative stat pills */}
+          <div className="mt-10 flex items-center justify-center gap-3 flex-wrap">
+            {[
+              { label: "Students",   value: "Track" },
+              { label: "Teachers",   value: "Manage" },
+              { label: "Classes",    value: "Schedule" },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full px-4 py-2"
+              >
+                <span className="text-edu-300 text-xs font-medium">{item.value}</span>
+                <span className="w-1 h-1 rounded-full bg-edu-400" />
+                <span className="text-white text-xs font-semibold">{item.label}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Right Panel - Login Form */}
-      <div className="w-full lg:w-1/2 bg-white flex flex-col items-center justify-center p-8 sm:p-12 relative">
-        <div className="w-full max-w-md space-y-8">
+      {/* ── Right Panel — Login Form ── */}
+      <div className="w-full lg:w-1/2 bg-surface-app flex flex-col items-center justify-center p-8 sm:p-12 relative">
+
+        {/* subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{
+            backgroundImage: `radial-gradient(circle, var(--edu-500) 1px, transparent 1px)`,
+            backgroundSize: "32px 32px",
+          }}
+        />
+
+        <div className="relative w-full max-w-md space-y-8">
+
+          {/* heading */}
           <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
+            {/* mobile logo */}
+            <div className="flex lg:hidden items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-edu-900 flex items-center justify-center">
+                <SafeImage
+                  src="/your-logo-2.png"
+                  alt="Logo"
+                  width={28}
+                  height={28}
+                  unoptimized
+                  className="h-7 w-7 object-contain"
+                />
+              </div>
+              <span className="font-bold text-(--text-heading) text-base">
+                Class Management
+              </span>
+            </div>
+
+            <h2 className="text-3xl font-bold text-(--text-heading) tracking-tight">
               Welcome Back
             </h2>
-            <p className="text-gray-500 text-sm">
-              Please login to your dashboard
+            <p className="text-(--text-secondary) text-sm">
+              Sign in to access your admin dashboard
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          {/* form */}
+          <form onSubmit={handleLogin} className="space-y-5">
+
             {error && (
-              <Alert
-                variant="destructive"
-                className="animate-in fade-in slide-in-from-top-2"
-              >
+              <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-2">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-700 font-medium">
-                  Email Address
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    required
-                    className="pl-10 h-12 border-gray-200 bg-white text-xb-primary"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-gray-700 font-medium">
-                  Password
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    required
-                    className="pl-10 pr-10 h-12 border-gray-200 bg-white text-xb-primary"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent text-gray-400 hover:text-gray-600"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
+            {/* Email */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="email"
+                className="text-(--text-body) text-sm font-medium"
+              >
+                Email Address
+              </Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-(--text-secondary)" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  className="pl-10 h-11 border-(--border-input) bg-surface-card text-(--text-body)
+                             focus:border-(--border-input-focus) focus:ring-0
+                             placeholder:text-(--text-disabled)"
+                />
               </div>
             </div>
 
+            {/* Password */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="password"
+                className="text-(--text-body) text-sm font-medium"
+              >
+                Password
+              </Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-(--text-secondary)" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  className="pl-10 pr-10 h-11 border-(--border-input) bg-surface-card text-(--text-body)
+                             focus:border-(--border-input-focus) focus:ring-0
+                             placeholder:text-(--text-disabled)"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent
+                             text-(--text-secondary) hover:text-(--text-body)"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword
+                    ? <EyeOff className="h-4 w-4" />
+                    : <Eye className="h-4 w-4" />
+                  }
+                </Button>
+              </div>
+            </div>
+
+            {/* Forgot password */}
             <div className="flex items-center justify-end">
               <button
                 type="button"
                 onClick={() => setShowForgotPasswordModal(true)}
-                className="text-sm font-medium text-xb-secondary hover:underline cursor-pointer"
+                className="text-sm font-medium text-edu-500 hover:text-edu-700 hover:underline transition-colors cursor-pointer"
               >
                 Forgot Password?
               </button>
             </div>
 
+            {/* Submit */}
             <Button
               type="submit"
-              className="w-full h-12 text-base bg-xb-primary text-white shadow-lg hover:shadow-xl hover:bg-xb-primary/90 transition-all duration-200"
+              className="w-full h-11 text-sm font-semibold
+                         bg-edu-500 hover:bg-edu-600 active:bg-edu-700
+                         text-white shadow-md hover:shadow-lg
+                         transition-all duration-200"
               disabled={loading}
             >
               {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                </>
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 "Sign In"
               )}
             </Button>
+
           </form>
 
-          <Dialog
-            open={showForgotPasswordModal}
-            onOpenChange={setShowForgotPasswordModal}
-          >
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-xb-primary/10">
-                    <HelpCircle className="h-6 w-6 text-xb-primary" />
-                  </div>
-                  <DialogTitle className="text-2xl">
-                    Forgot Password?
-                  </DialogTitle>
-                </div>
-                <DialogDescription className="text-base text-gray-600 pt-4 space-y-4">
-                  <p>
-                    For password assistance, please contact your admin or
-                    reach out to NexusCore support.
-                  </p>
-                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-xb-secondary/10 shrink-0">
-                      <Mail className="h-5 w-5 text-xb-secondary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-700 mb-1">
-                        Contact Support
-                      </p>
-                      <a
-                        href="mailto:support@NexusCore.com"
-                        className="text-xb-secondary hover:text-xb-primary font-semibold text-sm transition-colors break-all"
-                      >
-                        support@NexusCore.com
-                      </a>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2 pt-2">
-                    <Shield className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
-                    <p className="text-xs text-gray-500">
-                      Your security is important to us. All password reset
-                      requests are handled securely through our support team.
-                    </p>
-                  </div>
-                </DialogDescription>
-              </DialogHeader>
-            </DialogContent>
-          </Dialog>
+          {/* footer note */}
+          <p className="text-center text-xs text-(--text-disabled)">
+            Having trouble? Contact{" "}
+            <a
+              href="mailto:support@nexuscore.com"
+              className="text-edu-500 hover:text-edu-700 hover:underline transition-colors"
+            >
+              support@nexuscore.com
+            </a>
+          </p>
         </div>
       </div>
+
+      {/* ── Forgot Password Modal ── */}
+      <Dialog open={showForgotPasswordModal} onOpenChange={setShowForgotPasswordModal}>
+        <DialogContent className="sm:max-w-md bg-surface-card border-(--border-card)">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-edu-100">
+                <HelpCircle className="h-5 w-5 text-edu-600" />
+              </div>
+              <DialogTitle className="text-xl text-(--text-heading)">
+                Forgot Password?
+              </DialogTitle>
+            </div>
+            <DialogDescription asChild>
+              <div className="space-y-4 pt-2">
+                <p className="text-sm text-(--text-secondary)">
+                  For password assistance, please contact your admin or reach out to NexusCore support.
+                </p>
+
+                {/* contact card */}
+                <div className="flex items-center gap-3 p-4 bg-surface-app rounded-lg border border-(--border-default)">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-edu-100 shrink-0">
+                    <Mail className="h-4 w-4 text-edu-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-(--text-body) mb-0.5">
+                      Contact Support
+                    </p>
+                    <a
+                      href="mailto:support@nexuscore.com"
+                      className="text-edu-500 hover:text-edu-700 font-semibold text-sm transition-colors break-all"
+                    >
+                      support@nexuscore.com
+                    </a>
+                  </div>
+                </div>
+
+                {/* security note */}
+                <div className="flex items-start gap-2">
+                  <Shield className="h-4 w-4 text-(--text-disabled) mt-0.5 shrink-0" />
+                  <p className="text-xs text-(--text-disabled) leading-relaxed">
+                    Your security is important to us. All password reset requests are handled securely through our support team.
+                  </p>
+                </div>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };
+
 export default LoginPage;
