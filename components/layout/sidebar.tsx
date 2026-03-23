@@ -21,7 +21,7 @@ import {
 
 const navigation = [
   { name: "Dashboard",             href: "/",               icon: LayoutDashboard },
-  { name: "Manage Students",       href: "/students",        icon: CircleUser      },
+  { name: "Manage Students",       href: "/manage-students", icon: CircleUser      },
   { name: "Manage Teachers",       href: "/teachers",        icon: GraduationCap   },
   { name: "Manage Class Rooms",    href: "/class-rooms",     icon: Landmark        },
   { name: "Manage Class Schedules",href: "/class-schedules", icon: Calendar        },
