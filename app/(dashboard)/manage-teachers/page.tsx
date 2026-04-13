@@ -35,7 +35,7 @@ const supabase = createClient(
 );
 
 // ── Types ────────────────────────────────────────────────────────────────────
-type Student = {
+type Teacher = {
   id: string;
   name: string;
   email: string;
@@ -46,10 +46,10 @@ type Student = {
   force_password_reset: boolean;
   last_login: string | null;
   created_at: string;
-  class: { id: string; class: string } | null;  // uuid id, no year
+  class: { id: string; class: string } | null;
 };
 
-type ClassRecord = { id: string; class: string };  // uuid id, no year
+type ClassRecord = { id: string; class: string };
 
 type AddForm = {
   name: string;
@@ -92,13 +92,13 @@ function StatCard({
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────────
-export default function StudentsPage() {
-  const [students,     setStudents]     = useState<Student[]>([]);
+export default function TeachersPage() {
+  const [teachers,     setTeachers]     = useState<Teacher[]>([]);
   const [classes,      setClasses]      = useState<ClassRecord[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [search,       setSearch]       = useState("");
   const [classFilter,  setClassFilter]  = useState("all");
-  const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Teacher | null>(null);
   const [deleting,     setDeleting]     = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addForm,      setAddForm]      = useState<AddForm>(EMPTY_FORM);
@@ -112,12 +112,12 @@ export default function StudentsPage() {
       .then(({ data }) => { if (data) setClasses(data); });
   }, []);
 
-  // ── Fetch students ───────────────────────────────────────────────────────
-  const fetchStudents = useCallback(async () => {
+  // ── Fetch teachers ───────────────────────────────────────────────────────
+  const fetchTeachers = useCallback(async () => {
     setLoading(true);
 
     let query = supabase
-      .from("student")
+      .from("teachers")
       .select(`
         id, name, email, phone, dob,
         is_active, is_registered, force_password_reset,
@@ -129,49 +129,48 @@ export default function StudentsPage() {
     if (search)
       query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
 
-    // Filter by class_id uuid directly on the student row — reliable
     if (classFilter !== "all")
       query = query.eq("class_id", classFilter);
 
     const { data, error } = await query;
-    if (error) toast.error("Failed to load students");
-    else setStudents((data as unknown as Student[]) ?? []);
+    if (error) toast.error("Failed to load teachers");
+    else setTeachers((data as unknown as Teacher[]) ?? []);
     setLoading(false);
   }, [search, classFilter]);
 
-  useEffect(() => { fetchStudents(); }, [fetchStudents]);
+  useEffect(() => { fetchTeachers(); }, [fetchTeachers]);
 
   // ── Delete ───────────────────────────────────────────────────────────────
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
     const { error } = await supabase
-      .from("student")
+      .from("teachers")
       .delete()
       .eq("id", deleteTarget.id);
 
-    if (error) toast.error("Failed to delete student");
+    if (error) toast.error("Failed to delete teacher");
     else {
       toast.success(`${deleteTarget.name} removed successfully`);
-      fetchStudents();
+      fetchTeachers();
     }
     setDeleting(false);
     setDeleteTarget(null);
   };
 
   // ── Add ──────────────────────────────────────────────────────────────────
-  const handleAddStudent = async () => {
+  const handleAddTeacher = async () => {
     if (!addForm.name || !addForm.email) {
       toast.error("Name and email are required");
       return;
     }
     setAdding(true);
-    const { error } = await supabase.from("student").insert({
+    const { error } = await supabase.from("teachers").insert({
       name:                 addForm.name,
       email:                addForm.email,
       phone:                addForm.phone    || null,
       dob:                  addForm.dob      || null,
-      class_id:             addForm.class_id || null,  // uuid string, no parseInt
+      class_id:             addForm.class_id || null,
       is_registered:        true,
       is_active:            true,
       force_password_reset: true,
@@ -179,19 +178,19 @@ export default function StudentsPage() {
 
     if (error) toast.error(error.message);
     else {
-      toast.success(`Student added! Credentials sent to ${addForm.email}`);
+      toast.success(`Teacher added! Credentials sent to ${addForm.email}`);
       setAddModalOpen(false);
       setAddForm(EMPTY_FORM);
-      fetchStudents();
+      fetchTeachers();
     }
     setAdding(false);
   };
 
   // ── Stats ────────────────────────────────────────────────────────────────
-  const totalStudents = students.length;
-  const activeCount   = students.filter((s) => s.is_active).length;
-  const pendingCount  = students.filter((s) => s.force_password_reset).length;
-  const inactiveCount = students.filter((s) => !s.is_active).length;
+  const totalTeachers = teachers.length;
+  const activeCount   = teachers.filter((t) => t.is_active).length;
+  const pendingCount  = teachers.filter((t) => t.force_password_reset).length;
+  const inactiveCount = teachers.filter((t) => !t.is_active).length;
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
@@ -199,7 +198,7 @@ export default function StudentsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Total Students" value={totalStudents} />
+        <StatCard label="Total Teachers" value={totalTeachers} />
         <StatCard label="Active"         value={activeCount}   valueClass="text-success-600" />
         <StatCard label="Pending Reset"  value={pendingCount}  valueClass="text-warning-600" />
         <StatCard label="Inactive"       value={inactiveCount} valueClass="text-danger-600"  />
@@ -219,7 +218,7 @@ export default function StudentsPage() {
           />
         </div>
 
-        {/* Class filter — keyed by uuid, labeled by class name */}
+        {/* Class filter */}
         <Select value={classFilter} onValueChange={setClassFilter}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="All Classes" />
@@ -234,16 +233,16 @@ export default function StudentsPage() {
           </SelectContent>
         </Select>
 
-        <Button onClick={() => setAddModalOpen(true)}>+ Add Student</Button>
-        <Button variant="outline" onClick={fetchStudents}>↺ Refresh</Button>
+        <Button onClick={() => setAddModalOpen(true)}>+ Add Teacher</Button>
+        <Button variant="outline" onClick={fetchTeachers}>↺ Refresh</Button>
       </div>
 
       {/* Table */}
       <Card>
         <CardHeader className="px-5 py-3.5 border-b border-neutral-100 flex-row items-center gap-3 space-y-0">
-          <span className="text-[13px] font-bold text-neutral-900">Student Records</span>
+          <span className="text-[13px] font-bold text-neutral-900">Teacher Records</span>
           <span className="font-mono text-[11px] bg-neutral-100 text-neutral-500 px-2 py-0.5 rounded-full">
-            {students.length} total
+            {teachers.length} total
           </span>
         </CardHeader>
 
@@ -259,7 +258,7 @@ export default function StudentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-neutral-50 hover:bg-neutral-50">
-                    {["#", "Student", "Email", "Class", "Phone", "Status", "Last Login", "Actions"].map((h) => (
+                    {["#", "Teacher", "Email", "Class", "Phone", "Status", "Last Login", "Actions"].map((h) => (
                       <TableHead key={h} className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500 whitespace-nowrap">
                         {h}
                       </TableHead>
@@ -268,57 +267,57 @@ export default function StudentsPage() {
                 </TableHeader>
 
                 <TableBody>
-                  {students.length === 0 ? (
+                  {teachers.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8}>
                         <div className="py-14 text-center">
                           <p className="text-3xl opacity-30 mb-2">◈</p>
                           <p className="text-[13px] text-neutral-500">
-                            No students found. Try adjusting filters or add a new student.
+                            No teachers found. Try adjusting filters or add a new teacher.
                           </p>
                         </div>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    students.map((s, i) => (
-                      <TableRow key={s.id}>
+                    teachers.map((t, i) => (
+                      <TableRow key={t.id}>
                         <TableCell className="font-mono text-[11px] text-neutral-400">
                           {String(i + 1).padStart(2, "0")}
                         </TableCell>
-                        <TableCell className="font-semibold text-neutral-900">{s.name}</TableCell>
-                        <TableCell className="text-neutral-500 text-xs">{s.email}</TableCell>
+                        <TableCell className="font-semibold text-neutral-900">{t.name}</TableCell>
+                        <TableCell className="text-neutral-500 text-xs">{t.email}</TableCell>
                         <TableCell>
-                          {s.class ? (
+                          {t.class ? (
                             <span className="text-xs font-semibold bg-neutral-100 text-neutral-700 border border-neutral-200 px-2.5 py-1 rounded-full whitespace-nowrap">
-                              {s.class.class}
+                              {t.class.class}
                             </span>
                           ) : (
                             <span className="text-neutral-300">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-neutral-500 text-xs">{s.phone ?? "—"}</TableCell>
+                        <TableCell className="text-neutral-500 text-xs">{t.phone ?? "—"}</TableCell>
                         <TableCell>
                           <Badge
-                            variant={s.is_active ? "default" : "destructive"}
+                            variant={t.is_active ? "default" : "destructive"}
                             className={
-                              s.is_active
+                              t.is_active
                                 ? "bg-success-100 text-success-700 border border-success-500/20 hover:bg-success-100 font-mono text-[10px] tracking-wide"
                                 : "bg-danger-100 text-danger-700 border border-danger-500/20 hover:bg-danger-100 font-mono text-[10px] tracking-wide"
                             }
                           >
                             <span className="w-1.5 h-1.5 rounded-full bg-current mr-1 shrink-0" />
-                            {s.is_active ? "Active" : "Inactive"}
+                            {t.is_active ? "Active" : "Inactive"}
                           </Badge>
                         </TableCell>
                         <TableCell className="font-mono text-[11px] text-neutral-500 whitespace-nowrap">
-                          {formatDate(s.last_login)}
+                          {formatDate(t.last_login)}
                         </TableCell>
                         <TableCell>
                           <Button
                             variant="ghost"
                             size="sm"
                             className="text-[11px] font-semibold text-danger-600 bg-danger-100 border border-danger-500/15 hover:bg-danger-500 hover:text-white h-auto py-1 px-2.5"
-                            onClick={() => setDeleteTarget(s)}
+                            onClick={() => setDeleteTarget(t)}
                           >
                             ✕ Delete
                           </Button>
@@ -338,7 +337,7 @@ export default function StudentsPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <div className="w-11 h-11 rounded-xl bg-danger-100 border border-danger-500/20 grid place-items-center text-xl mb-1">⚠</div>
-            <AlertDialogTitle>Delete Student?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Teacher?</AlertDialogTitle>
             <AlertDialogDescription>
               You&apos;re about to permanently remove{" "}
               <strong className="text-foreground">{deleteTarget?.name}</strong>.{" "}
@@ -352,34 +351,34 @@ export default function StudentsPage() {
               onClick={handleDelete}
               disabled={deleting}
             >
-              {deleting ? "Deleting…" : "Delete Student"}
+              {deleting ? "Deleting…" : "Delete Teacher"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Add student modal */}
+      {/* Add teacher modal */}
       <Dialog open={addModalOpen} onOpenChange={(open) => { if (!open) setAddModalOpen(false); }}>
         <DialogContent className="sm:max-w-[540px]">
           <DialogHeader>
-            <DialogTitle>Add New Student</DialogTitle>
+            <DialogTitle>Add New Teacher</DialogTitle>
           </DialogHeader>
 
           <div className="font-mono text-[11px] text-neutral-500 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2.5 leading-relaxed">
             ◈ System will auto-generate a temporary password and{" "}
             <span className="text-edu-600 font-semibold">email credentials</span>{" "}
-            to the student. They&apos;ll be forced to change password on first login.
+            to the teacher. They&apos;ll be forced to change password on first login.
           </div>
 
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">Full Name *</Label>
-              <Input placeholder="John Doe" value={addForm.name} onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} />
+              <Input placeholder="Jane Smith" value={addForm.name} onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} />
             </div>
 
             <div className="space-y-1.5">
               <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">Email Address *</Label>
-              <Input type="email" placeholder="student@email.com" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} />
+              <Input type="email" placeholder="teacher@email.com" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} />
             </div>
 
             <div className="grid grid-cols-2 gap-3.5">
@@ -394,7 +393,7 @@ export default function StudentsPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">Class</Label>
+              <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">Assigned Class</Label>
               <Select value={addForm.class_id} onValueChange={(val) => setAddForm({ ...addForm, class_id: val })}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select a class" />
@@ -412,8 +411,8 @@ export default function StudentsPage() {
 
           <div className="flex justify-end gap-2.5 pt-1">
             <Button variant="outline" onClick={() => setAddModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddStudent} disabled={adding}>
-              {adding ? "Adding…" : "Add Student & Send Email"}
+            <Button onClick={handleAddTeacher} disabled={adding}>
+              {adding ? "Adding…" : "Add Teacher & Send Email"}
             </Button>
           </div>
         </DialogContent>
