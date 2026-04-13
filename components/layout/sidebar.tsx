@@ -22,8 +22,8 @@ import {
 const navigation = [
   { name: "Dashboard",             href: "/",               icon: LayoutDashboard },
   { name: "Manage Students",       href: "/manage-students", icon: CircleUser      },
-  { name: "Manage Teachers",       href: "/teachers",        icon: GraduationCap   },
-  { name: "Manage Class Rooms",    href: "/class-rooms",     icon: Landmark        },
+  { name: "Manage Teachers",       href: "/manage-teachers", icon: GraduationCap   },
+  { name: "Class and Batch Management",    href: "/class-batch-management",     icon: Landmark        },
   { name: "Manage Class Schedules",href: "/class-schedules", icon: Calendar        },
   { name: "Manage Attendance",     href: "/attendance",      icon: CalendarCheck   },
   { name: "Manage Payments",       href: "/payments",        icon: CreditCard      },
