@@ -34,7 +34,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 type Student = {
   id: string;
   name: string;
@@ -46,24 +46,37 @@ type Student = {
   force_password_reset: boolean;
   last_login: string | null;
   created_at: string;
-  class: { id: string; class: string } | null;  // uuid id, no year
+  // batches enrolled — populated after fetch
+  batches: EnrolledBatch[];
 };
 
-type ClassRecord = { id: string; class: string };  // uuid id, no year
+type EnrolledBatch = {
+  batch_id: string;
+  batch_name: string;
+  class_name: string;
+};
+
+// A batch row for the assignment modal
+type BatchOption = {
+  id: string;
+  name: string;
+  class_name: string;
+  subject_name: string | null;
+  subject_code: string | null;
+};
 
 type AddForm = {
   name: string;
   email: string;
   phone: string;
   dob: string;
-  class_id: string;
 };
 
 const EMPTY_FORM: AddForm = {
-  name: "", email: "", phone: "", dob: "", class_id: "",
+  name: "", email: "", phone: "", dob: "",
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(dateStr: string | null) {
   if (!dateStr) return "—";
   return new Date(dateStr).toLocaleDateString("en-US", {
@@ -71,7 +84,7 @@ function formatDate(dateStr: string | null) {
   });
 }
 
-// ── Stat Card ────────────────────────────────────────────────────────────────
+// ── Stat Card ─────────────────────────────────────────────────────────────────
 function StatCard({
   label, value, valueClass,
 }: {
@@ -91,28 +104,85 @@ function StatCard({
   );
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
+// ── Batch Checkbox Row ────────────────────────────────────────────────────────
+function BatchCheckRow({
+  batch,
+  checked,
+  onChange,
+}: {
+  batch: BatchOption;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label
+      className={[
+        "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-150",
+        checked
+          ? "bg-edu-50 border-edu-400/50 shadow-sm"
+          : "bg-white border-neutral-200 hover:border-neutral-300",
+      ].join(" ")}
+    >
+      {/* Custom checkbox */}
+      <div
+        className={[
+          "w-4 h-4 rounded flex-shrink-0 border-2 flex items-center justify-center transition-colors duration-150",
+          checked ? "bg-edu-600 border-edu-600" : "border-neutral-300 bg-white",
+        ].join(" ")}
+        onClick={() => onChange(!checked)}
+      >
+        {checked && (
+          <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+            <path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[13px] font-semibold text-neutral-900">{batch.name}</span>
+          <span className="font-mono text-[10px] font-semibold bg-neutral-100 text-neutral-600 border border-neutral-200 px-2 py-0.5 rounded-full">
+            {batch.class_name}
+          </span>
+          {batch.subject_name && (
+            <span className="font-mono text-[10px] font-semibold bg-edu-50 text-edu-700 border border-edu-200/70 px-2 py-0.5 rounded-full">
+              {batch.subject_code ? `${batch.subject_code} · ` : ""}{batch.subject_name}
+            </span>
+          )}
+        </div>
+      </div>
+    </label>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 export default function StudentsPage() {
   const [students,     setStudents]     = useState<Student[]>([]);
-  const [classes,      setClasses]      = useState<ClassRecord[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [search,       setSearch]       = useState("");
   const [classFilter,  setClassFilter]  = useState("all");
+
+  // All unique class names derived from batches (for filter dropdown)
+  const [classOptions, setClassOptions] = useState<{ id: string; name: string }[]>([]);
+
+  // Delete
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
   const [deleting,     setDeleting]     = useState(false);
+
+  // Add student
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addForm,      setAddForm]      = useState<AddForm>(EMPTY_FORM);
   const [adding,       setAdding]       = useState(false);
 
-  // ── Fetch classes ────────────────────────────────────────────────────────
-  useEffect(() => {
-    supabase
-      .from("class")
-      .select("id, class")
-      .then(({ data }) => { if (data) setClasses(data); });
-  }, []);
+  // Assign batches
+  const [assignTarget,     setAssignTarget]     = useState<Student | null>(null);
+  const [allBatches,       setAllBatches]       = useState<BatchOption[]>([]);
+  const [selectedBatchIds, setSelectedBatchIds] = useState<Set<string>>(new Set());
+  const [batchSearch,      setBatchSearch]      = useState("");
+  const [saving,           setSaving]           = useState(false);
+  const [loadingBatches,   setLoadingBatches]   = useState(false);
 
-  // ── Fetch students ───────────────────────────────────────────────────────
+  // ── Fetch students + their enrolled batches ──────────────────────────────
   const fetchStudents = useCallback(async () => {
     setLoading(true);
 
@@ -121,35 +191,145 @@ export default function StudentsPage() {
       .select(`
         id, name, email, phone, dob,
         is_active, is_registered, force_password_reset,
-        last_login, created_at,
-        class:class_id ( id, class )
+        last_login, created_at
       `)
       .order("created_at", { ascending: false });
 
     if (search)
       query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
 
-    // Filter by class_id uuid directly on the student row — reliable
-    if (classFilter !== "all")
-      query = query.eq("class_id", classFilter);
+    const { data: studentData, error } = await query;
+    if (error) { toast.error("Failed to load students"); setLoading(false); return; }
 
-    const { data, error } = await query;
-    if (error) toast.error("Failed to load students");
-    else setStudents((data as unknown as Student[]) ?? []);
+    const studentIds = (studentData ?? []).map((s) => s.id);
+
+    // Fetch all student_batch rows for these students in one query
+    const { data: sbRows } = studentIds.length > 0
+      ? await supabase
+          .from("student_batch")
+          .select(`
+            student_id,
+            batch:batch_id (
+              id, name,
+              class:class_id ( id, class )
+            )
+          `)
+          .in("student_id", studentIds)
+      : { data: [] };
+
+    // Build a map of student_id → enrolled batches
+    const batchMap: Record<string, EnrolledBatch[]> = {};
+    (sbRows ?? []).forEach((row: any) => {
+      const sid = row.student_id;
+      if (!batchMap[sid]) batchMap[sid] = [];
+      if (row.batch) {
+        batchMap[sid].push({
+          batch_id:   row.batch.id,
+          batch_name: row.batch.name,
+          class_name: row.batch.class?.class ?? "—",
+        });
+      }
+    });
+
+    const enriched: Student[] = (studentData ?? []).map((s) => ({
+      ...s,
+      batches: batchMap[s.id] ?? [],
+    }));
+
+    // Build class filter options from all enrolled batches
+    const classMap: Record<string, string> = {};
+    enriched.forEach((s) => s.batches.forEach((b) => {
+      classMap[b.class_name] = b.class_name;
+    }));
+    setClassOptions(Object.keys(classMap).map((name) => ({ id: name, name })));
+
+    // Apply class filter client-side (filter by class_name in batches)
+    const filtered = classFilter === "all"
+      ? enriched
+      : enriched.filter((s) => s.batches.some((b) => b.class_name === classFilter));
+
+    setStudents(filtered);
     setLoading(false);
   }, [search, classFilter]);
 
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
 
-  // ── Delete ───────────────────────────────────────────────────────────────
+  // ── Open assign batches modal ────────────────────────────────────────────
+  const openAssignModal = async (student: Student) => {
+    setAssignTarget(student);
+    setLoadingBatches(true);
+    setBatchSearch("");
+
+    // Fetch all batches with class + subject info
+    const { data: batchRows, error } = await supabase
+      .from("batch")
+      .select(`
+        id, name,
+        class:class_id  ( id, class ),
+        subject:subject_id ( id, name, code )
+      `)
+      .eq("is_active", true)
+      .order("name");
+
+    if (error) {
+      toast.error("Failed to load batches");
+      setLoadingBatches(false);
+      return;
+    }
+
+    const options: BatchOption[] = (batchRows ?? []).map((b: any) => ({
+      id:           b.id,
+      name:         b.name,
+      class_name:   b.class?.class      ?? "—",
+      subject_name: b.subject?.name     ?? null,
+      subject_code: b.subject?.code     ?? null,
+    }));
+
+    setAllBatches(options);
+
+    // Pre-tick already enrolled batches
+    setSelectedBatchIds(new Set(student.batches.map((b) => b.batch_id)));
+    setLoadingBatches(false);
+  };
+
+  // ── Save batch assignments ───────────────────────────────────────────────
+  const handleSaveAssignments = async () => {
+    if (!assignTarget) return;
+    setSaving(true);
+
+    const currentIds  = new Set(assignTarget.batches.map((b) => b.batch_id));
+    const toAdd       = [...selectedBatchIds].filter((id) => !currentIds.has(id));
+    const toRemove    = [...currentIds].filter((id) => !selectedBatchIds.has(id));
+
+    // Insert new assignments
+    if (toAdd.length > 0) {
+      const { error } = await supabase.from("student_batch").insert(
+        toAdd.map((batch_id) => ({ student_id: assignTarget.id, batch_id }))
+      );
+      if (error) { toast.error("Failed to add some batch assignments"); setSaving(false); return; }
+    }
+
+    // Remove deselected assignments
+    if (toRemove.length > 0) {
+      const { error } = await supabase
+        .from("student_batch")
+        .delete()
+        .eq("student_id", assignTarget.id)
+        .in("batch_id", toRemove);
+      if (error) { toast.error("Failed to remove some batch assignments"); setSaving(false); return; }
+    }
+
+    toast.success(`Batch assignments updated for ${assignTarget.name}`);
+    setAssignTarget(null);
+    fetchStudents();
+    setSaving(false);
+  };
+
+  // ── Delete student ───────────────────────────────────────────────────────
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
-    const { error } = await supabase
-      .from("student")
-      .delete()
-      .eq("id", deleteTarget.id);
-
+    const { error } = await supabase.from("student").delete().eq("id", deleteTarget.id);
     if (error) toast.error("Failed to delete student");
     else {
       toast.success(`${deleteTarget.name} removed successfully`);
@@ -159,7 +339,7 @@ export default function StudentsPage() {
     setDeleteTarget(null);
   };
 
-  // ── Add ──────────────────────────────────────────────────────────────────
+  // ── Add student ──────────────────────────────────────────────────────────
   const handleAddStudent = async () => {
     if (!addForm.name || !addForm.email) {
       toast.error("Name and email are required");
@@ -169,9 +349,8 @@ export default function StudentsPage() {
     const { error } = await supabase.from("student").insert({
       name:                 addForm.name,
       email:                addForm.email,
-      phone:                addForm.phone    || null,
-      dob:                  addForm.dob      || null,
-      class_id:             addForm.class_id || null,  // uuid string, no parseInt
+      phone:                addForm.phone || null,
+      dob:                  addForm.dob   || null,
       is_registered:        true,
       is_active:            true,
       force_password_reset: true,
@@ -187,13 +366,30 @@ export default function StudentsPage() {
     setAdding(false);
   };
 
+  // ── Toggle batch selection ───────────────────────────────────────────────
+  const toggleBatch = (id: string, checked: boolean) => {
+    setSelectedBatchIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id); else next.delete(id);
+      return next;
+    });
+  };
+
+  // Filtered batch list inside the assign modal
+  const filteredBatches = allBatches.filter((b) =>
+    !batchSearch ||
+    b.name.toLowerCase().includes(batchSearch.toLowerCase()) ||
+    b.class_name.toLowerCase().includes(batchSearch.toLowerCase()) ||
+    (b.subject_name ?? "").toLowerCase().includes(batchSearch.toLowerCase())
+  );
+
   // ── Stats ────────────────────────────────────────────────────────────────
   const totalStudents = students.length;
   const activeCount   = students.filter((s) => s.is_active).length;
   const pendingCount  = students.filter((s) => s.force_password_reset).length;
   const inactiveCount = students.filter((s) => !s.is_active).length;
 
-  // ── Render ───────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-5">
 
@@ -208,9 +404,7 @@ export default function StudentsPage() {
       {/* Toolbar */}
       <div className="flex items-center gap-2.5 flex-wrap">
         <div className="relative flex-1 min-w-[220px]">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm pointer-events-none">
-            ⌕
-          </span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm pointer-events-none">⌕</span>
           <Input
             className="pl-8"
             placeholder="Search by name or email…"
@@ -219,17 +413,15 @@ export default function StudentsPage() {
           />
         </div>
 
-        {/* Class filter — keyed by uuid, labeled by class name */}
+        {/* Filter by class name derived from batches */}
         <Select value={classFilter} onValueChange={setClassFilter}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="All Classes" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Classes</SelectItem>
-            {classes.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.class}
-              </SelectItem>
+            {classOptions.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -259,7 +451,7 @@ export default function StudentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-neutral-50 hover:bg-neutral-50">
-                    {["#", "Student", "Email", "Class", "Phone", "Status", "Last Login", "Actions"].map((h) => (
+                    {["#", "Student", "Email", "Enrolled Batches", "Phone", "Status", "Last Login", "Actions"].map((h) => (
                       <TableHead key={h} className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500 whitespace-nowrap">
                         {h}
                       </TableHead>
@@ -287,19 +479,28 @@ export default function StudentsPage() {
                         </TableCell>
                         <TableCell className="font-semibold text-neutral-900">{s.name}</TableCell>
                         <TableCell className="text-neutral-500 text-xs">{s.email}</TableCell>
+
+                        {/* Enrolled batches — shown as pills */}
                         <TableCell>
-                          {s.class ? (
-                            <span className="text-xs font-semibold bg-neutral-100 text-neutral-700 border border-neutral-200 px-2.5 py-1 rounded-full whitespace-nowrap">
-                              {s.class.class}
-                            </span>
-                          ) : (
-                            <span className="text-neutral-300">—</span>
-                          )}
+                          <div className="flex flex-wrap gap-1">
+                            {s.batches.length === 0 ? (
+                              <span className="text-neutral-300 text-xs">Not assigned</span>
+                            ) : (
+                              s.batches.map((b) => (
+                                <span
+                                  key={b.batch_id}
+                                  className="text-[10px] font-semibold bg-edu-50 text-edu-700 border border-edu-200/70 px-2 py-0.5 rounded-full whitespace-nowrap font-mono"
+                                >
+                                  {b.class_name} · {b.batch_name}
+                                </span>
+                              ))
+                            )}
+                          </div>
                         </TableCell>
+
                         <TableCell className="text-neutral-500 text-xs">{s.phone ?? "—"}</TableCell>
                         <TableCell>
                           <Badge
-                            variant={s.is_active ? "default" : "destructive"}
                             className={
                               s.is_active
                                 ? "bg-success-100 text-success-700 border border-success-500/20 hover:bg-success-100 font-mono text-[10px] tracking-wide"
@@ -314,14 +515,25 @@ export default function StudentsPage() {
                           {formatDate(s.last_login)}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-[11px] font-semibold text-danger-600 bg-danger-100 border border-danger-500/15 hover:bg-danger-500 hover:text-white h-auto py-1 px-2.5"
-                            onClick={() => setDeleteTarget(s)}
-                          >
-                            ✕ Delete
-                          </Button>
+                          <div className="flex items-center gap-1.5">
+                            {/* Assign batches button */}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-[11px] font-semibold text-edu-600 bg-edu-50 border border-edu-500/15 hover:bg-edu-500 hover:text-white h-auto py-1 px-2.5 whitespace-nowrap"
+                              onClick={() => openAssignModal(s)}
+                            >
+                              ⊞ Assign Batches
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-[11px] font-semibold text-danger-600 bg-danger-100 border border-danger-500/15 hover:bg-danger-500 hover:text-white h-auto py-1 px-2.5"
+                              onClick={() => setDeleteTarget(s)}
+                            >
+                              ✕ Delete
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -333,7 +545,7 @@ export default function StudentsPage() {
         </CardContent>
       </Card>
 
-      {/* Delete dialog */}
+      {/* ── Delete dialog ── */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -358,7 +570,7 @@ export default function StudentsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Add student modal */}
+      {/* ── Add student modal ── */}
       <Dialog open={addModalOpen} onOpenChange={(open) => { if (!open) setAddModalOpen(false); }}>
         <DialogContent className="sm:max-w-[540px]">
           <DialogHeader>
@@ -369,44 +581,44 @@ export default function StudentsPage() {
             ◈ System will auto-generate a temporary password and{" "}
             <span className="text-edu-600 font-semibold">email credentials</span>{" "}
             to the student. They&apos;ll be forced to change password on first login.
+            You can assign batches after adding the student.
           </div>
 
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">Full Name *</Label>
-              <Input placeholder="John Doe" value={addForm.name} onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} />
+              <Input
+                placeholder="John Doe"
+                value={addForm.name}
+                onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
+              />
             </div>
-
             <div className="space-y-1.5">
               <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">Email Address *</Label>
-              <Input type="email" placeholder="student@email.com" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} />
+              <Input
+                type="email"
+                placeholder="student@email.com"
+                value={addForm.email}
+                onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
+              />
             </div>
-
             <div className="grid grid-cols-2 gap-3.5">
               <div className="space-y-1.5">
                 <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">Phone</Label>
-                <Input placeholder="+94 77 123 4567" value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })} />
+                <Input
+                  placeholder="+94 77 123 4567"
+                  value={addForm.phone}
+                  onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">Date of Birth</Label>
-                <Input type="date" value={addForm.dob} onChange={(e) => setAddForm({ ...addForm, dob: e.target.value })} />
+                <Input
+                  type="date"
+                  value={addForm.dob}
+                  onChange={(e) => setAddForm({ ...addForm, dob: e.target.value })}
+                />
               </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">Class</Label>
-              <Select value={addForm.class_id} onValueChange={(val) => setAddForm({ ...addForm, class_id: val })}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.class}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
@@ -414,6 +626,89 @@ export default function StudentsPage() {
             <Button variant="outline" onClick={() => setAddModalOpen(false)}>Cancel</Button>
             <Button onClick={handleAddStudent} disabled={adding}>
               {adding ? "Adding…" : "Add Student & Send Email"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Assign Batches modal ── */}
+      <Dialog
+        open={!!assignTarget}
+        onOpenChange={(open) => { if (!open) setAssignTarget(null); }}
+      >
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>Assign Batches</DialogTitle>
+          </DialogHeader>
+
+          {/* Student name context */}
+          <div className="flex items-center gap-2.5 px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg">
+            <span className="text-[11px] font-mono text-neutral-500 uppercase tracking-[1.5px]">Student</span>
+            <span className="text-[13px] font-semibold text-neutral-900">{assignTarget?.name}</span>
+            {assignTarget && assignTarget.batches.length > 0 && (
+              <span className="ml-auto font-mono text-[10px] bg-edu-50 text-edu-700 border border-edu-200/70 px-2 py-0.5 rounded-full">
+                {assignTarget.batches.length} enrolled
+              </span>
+            )}
+          </div>
+
+          {/* Batch search */}
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm pointer-events-none">⌕</span>
+            <Input
+              className="pl-8"
+              placeholder="Search batches by name, class, or subject…"
+              value={batchSearch}
+              onChange={(e) => setBatchSearch(e.target.value)}
+            />
+          </div>
+
+          {/* Selection counter */}
+          {selectedBatchIds.size > 0 && (
+            <div className="flex items-center justify-between px-3 py-2 bg-edu-50 border border-edu-200/70 rounded-lg">
+              <span className="text-[12px] font-semibold text-edu-700">
+                {selectedBatchIds.size} batch{selectedBatchIds.size !== 1 ? "es" : ""} selected
+              </span>
+              <button
+                className="text-[11px] text-edu-500 hover:text-edu-700 font-mono underline"
+                onClick={() => setSelectedBatchIds(new Set())}
+              >
+                Clear all
+              </button>
+            </div>
+          )}
+
+          {/* Batch list */}
+          <div className="space-y-2 max-h-[320px] overflow-y-auto pr-0.5">
+            {loadingBatches ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-14 w-full rounded-lg" style={{ opacity: 1 - i * 0.2 }} />
+              ))
+            ) : filteredBatches.length === 0 ? (
+              <div className="py-10 text-center">
+                <p className="text-3xl opacity-30 mb-2">◈</p>
+                <p className="text-[13px] text-neutral-500">
+                  {allBatches.length === 0
+                    ? "No active batches found. Create batches first."
+                    : "No batches match your search."}
+                </p>
+              </div>
+            ) : (
+              filteredBatches.map((b) => (
+                <BatchCheckRow
+                  key={b.id}
+                  batch={b}
+                  checked={selectedBatchIds.has(b.id)}
+                  onChange={(checked) => toggleBatch(b.id, checked)}
+                />
+              ))
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2.5 pt-1 border-t border-neutral-100">
+            <Button variant="outline" onClick={() => setAssignTarget(null)}>Cancel</Button>
+            <Button onClick={handleSaveAssignments} disabled={saving || loadingBatches}>
+              {saving ? "Saving…" : "Save Assignments"}
             </Button>
           </div>
         </DialogContent>
