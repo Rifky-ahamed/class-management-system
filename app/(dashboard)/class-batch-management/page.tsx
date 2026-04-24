@@ -72,6 +72,7 @@ type BatchRecord = {
   is_active: boolean;
   created_at: string;
   class: { id: string; class: string } | null;
+  subject: { id: string; name: string; code: string | null } | null;
 };
 
 type SubjectRecord = {
@@ -237,8 +238,8 @@ export default function ClassBatchSubjectPage() {
   const [batchForm, setBatchForm] = useState<BatchForm>(EMPTY_BATCH_FORM);
   const [addingBatch, setAddingBatch] = useState(false);
   const [batchSubjects, setBatchSubjects] = useState<SubjectRecord[]>([]);
-const [batchClasses,  setBatchClasses]  = useState<ClassRecord[]>([]);
-const [loadingBatchOptions, setLoadingBatchOptions] = useState(false);
+  const [batchClasses, setBatchClasses] = useState<ClassRecord[]>([]);
+  const [loadingBatchOptions, setLoadingBatchOptions] = useState(false);
 
   // ── Subjects state ───────────────────────────────────────────────────────
   const [subjects, setSubjects] = useState<SubjectRecord[]>([]);
@@ -317,7 +318,8 @@ const [loadingBatchOptions, setLoadingBatchOptions] = useState(false);
         id, name, class_id, description,
         start_date, end_date, max_students,
         is_active, created_at,
-        class:class_id ( id, class )
+        class:class_id ( id, class ),
+        subject:subject_id ( id, name, code )
       `,
       )
       .order("created_at", { ascending: false });
@@ -361,53 +363,59 @@ const [loadingBatchOptions, setLoadingBatchOptions] = useState(false);
   }, [fetchSubjects]);
 
   // ── Fetch classes & subjects that are assigned to teachers ───────────────
-const fetchBatchOptions = useCallback(async () => {
-  setLoadingBatchOptions(true);
+  const fetchBatchOptions = useCallback(async () => {
+    setLoadingBatchOptions(true);
 
-  // Get all class_ids that appear in teacher_classes
-  const { data: tcRows } = await supabase
-    .from("teacher_classes")
-    .select("class_id");
+    // Get all class_ids that appear in teacher_classes
+    const { data: tcRows } = await supabase
+      .from("teacher_classes")
+      .select("class_id");
 
-  // Get all subject_ids that appear in teachers
-  const { data: teacherRows } = await supabase
-    .from("teachers")
-    .select("subject_id")
-    .not("subject_id", "is", null);
+    // Get all subject_ids that appear in teachers
+    const { data: teacherRows } = await supabase
+      .from("teachers")
+      .select("subject_id")
+      .not("subject_id", "is", null);
 
-  const assignedClassIds   = [...new Set((tcRows ?? []).map((r) => r.class_id))];
-  const assignedSubjectIds = [...new Set((teacherRows ?? []).map((r) => r.subject_id).filter(Boolean))];
+    const assignedClassIds = [
+      ...new Set((tcRows ?? []).map((r) => r.class_id)),
+    ];
+    const assignedSubjectIds = [
+      ...new Set((teacherRows ?? []).map((r) => r.subject_id).filter(Boolean)),
+    ];
 
-  if (assignedClassIds.length > 0) {
-    const { data } = await supabase
-      .from("class")
-      .select("id, class, description, max_students, is_active, created_at")
-      .in("id", assignedClassIds)
-      .eq("is_active", true)
-      .order("class", { ascending: true });
-    setBatchClasses(
-      (data ?? []).map((c) => ({ ...c, student_count: 0, batch_count: 0 }))
-    );
-  } else {
-    setBatchClasses([]);
-  }
+    if (assignedClassIds.length > 0) {
+      const { data } = await supabase
+        .from("class")
+        .select("id, class, description, max_students, is_active, created_at")
+        .in("id", assignedClassIds)
+        .eq("is_active", true)
+        .order("class", { ascending: true });
+      setBatchClasses(
+        (data ?? []).map((c) => ({ ...c, student_count: 0, batch_count: 0 })),
+      );
+    } else {
+      setBatchClasses([]);
+    }
 
-  if (assignedSubjectIds.length > 0) {
-    const { data } = await supabase
-      .from("subject")
-      .select("id, name, code, description, is_active, created_at")
-      .in("id", assignedSubjectIds as string[])
-      .eq("is_active", true)
-      .order("name", { ascending: true });
-    setBatchSubjects((data as SubjectRecord[]) ?? []);
-  } else {
-    setBatchSubjects([]);
-  }
+    if (assignedSubjectIds.length > 0) {
+      const { data } = await supabase
+        .from("subject")
+        .select("id, name, code, description, is_active, created_at")
+        .in("id", assignedSubjectIds as string[])
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+      setBatchSubjects((data as SubjectRecord[]) ?? []);
+    } else {
+      setBatchSubjects([]);
+    }
 
-  setLoadingBatchOptions(false);
-}, []);
+    setLoadingBatchOptions(false);
+  }, []);
 
-useEffect(() => { fetchBatchOptions(); }, [fetchBatchOptions]);
+  useEffect(() => {
+    fetchBatchOptions();
+  }, [fetchBatchOptions]);
 
   // ── Add class ────────────────────────────────────────────────────────────
   const handleAddClass = async () => {
@@ -486,31 +494,33 @@ useEffect(() => { fetchBatchOptions(); }, [fetchBatchOptions]);
   };
 
   // ── Add batch ────────────────────────────────────────────────────────────
-const handleAddBatch = async () => {
-  if (!batchForm.name.trim() || !batchForm.class_id) {
-    toast.error("Batch name and class are required");
-    return;
-  }
-  setAddingBatch(true);
-  const { error } = await supabase.from("batch").insert({
-    name:         batchForm.name.trim(),
-    class_id:     batchForm.class_id,
-    subject_id:   batchForm.subject_id || null,   // ← add this
-    description:  batchForm.description || null,
-    start_date:   batchForm.start_date  || null,
-    end_date:     batchForm.end_date    || null,
-    max_students: batchForm.max_students ? parseInt(batchForm.max_students) : null,
-  });
-  if (error) toast.error(error.message);
-  else {
-    toast.success(`Batch "${batchForm.name}" created successfully`);
-    setAddBatchOpen(false);
-    setBatchForm(EMPTY_BATCH_FORM);
-    fetchBatches();
-    fetchClasses();
-  }
-  setAddingBatch(false);
-};
+  const handleAddBatch = async () => {
+    if (!batchForm.name.trim() || !batchForm.class_id) {
+      toast.error("Batch name and class are required");
+      return;
+    }
+    setAddingBatch(true);
+    const { error } = await supabase.from("batch").insert({
+      name: batchForm.name.trim(),
+      class_id: batchForm.class_id,
+      subject_id: batchForm.subject_id || null, // ← add this
+      description: batchForm.description || null,
+      start_date: batchForm.start_date || null,
+      end_date: batchForm.end_date || null,
+      max_students: batchForm.max_students
+        ? parseInt(batchForm.max_students)
+        : null,
+    });
+    if (error) toast.error(error.message);
+    else {
+      toast.success(`Batch "${batchForm.name}" created successfully`);
+      setAddBatchOpen(false);
+      setBatchForm(EMPTY_BATCH_FORM);
+      fetchBatches();
+      fetchClasses();
+    }
+    setAddingBatch(false);
+  };
 
   const handleDeleteBatch = async () => {
     if (!deleteBatchTarget) return;
@@ -871,6 +881,7 @@ const handleAddBatch = async () => {
                           "#",
                           "Batch Name",
                           "Class",
+                          "Subject",
                           "Start Date",
                           "End Date",
                           "Max Students",
@@ -889,7 +900,7 @@ const handleAddBatch = async () => {
                     <TableBody>
                       {batches.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={8}>
+                          <TableCell colSpan={9}>
                             <div className="py-14 text-center">
                               <p className="text-3xl opacity-30 mb-2">◈</p>
                               <p className="text-[13px] text-neutral-500">
@@ -907,10 +918,23 @@ const handleAddBatch = async () => {
                             <TableCell className="font-semibold text-neutral-900">
                               {b.name}
                             </TableCell>
+
                             <TableCell>
                               {b.class ? (
                                 <span className="text-xs font-semibold bg-neutral-100 text-neutral-700 border border-neutral-200 px-2.5 py-1 rounded-full whitespace-nowrap">
                                   {b.class.class}
+                                </span>
+                              ) : (
+                                <span className="text-neutral-300">—</span>
+                              )}
+                            </TableCell>
+
+                            <TableCell>
+                              {b.subject ? (
+                                <span className="text-xs font-semibold bg-edu-50 text-edu-700 border border-edu-200/70 px-2.5 py-1 rounded-full whitespace-nowrap">
+                                  {b.subject.code
+                                    ? `${b.subject.code} – ${b.subject.name}`
+                                    : b.subject.name}
                                 </span>
                               ) : (
                                 <span className="text-neutral-300">—</span>
@@ -1367,168 +1391,194 @@ const handleAddBatch = async () => {
       </Dialog>
 
       {/* ── Add Batch Modal ── */}
-{/* ── Add Batch Modal ── */}
-<Dialog
-  open={addBatchOpen}
-  onOpenChange={(open) => {
-    if (!open) {
-      setAddBatchOpen(false);
-      setBatchForm(EMPTY_BATCH_FORM);
-    }
-  }}
->
-  <DialogContent className="sm:max-w-[540px]">
-    <DialogHeader>
-      <DialogTitle>Add New Batch</DialogTitle>
-    </DialogHeader>
-
-    <div className="font-mono text-[11px] text-neutral-500 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2.5 leading-relaxed">
-      ◈ A batch is a time-bound group within a class — e.g.{" "}
-      <span className="text-edu-600 font-semibold">Morning Batch</span>,{" "}
-      <span className="text-edu-600 font-semibold">2024 Batch</span>, or{" "}
-      <span className="text-edu-600 font-semibold">Section A</span>.
-      Only classes and subjects <span className="text-edu-600 font-semibold">assigned to teachers</span> are shown.
-    </div>
-
-    <div className="space-y-4">
-      {/* Batch Name */}
-      <div className="space-y-1.5">
-        <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">
-          Batch Name *
-        </Label>
-        <Input
-          placeholder="e.g. Morning Batch, 2024 Batch, Section A"
-          value={batchForm.name}
-          onChange={(e) => setBatchForm({ ...batchForm, name: e.target.value })}
-        />
-      </div>
-
-      {/* Class + Subject side by side */}
-      <div className="grid grid-cols-2 gap-3.5">
-        <div className="space-y-1.5">
-          <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">
-            Class *
-          </Label>
-          <Select
-            value={batchForm.class_id}
-            onValueChange={(val) => setBatchForm({ ...batchForm, class_id: val })}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder={loadingBatchOptions ? "Loading…" : "Select a class"} />
-            </SelectTrigger>
-            <SelectContent>
-              {batchClasses.length === 0 ? (
-                <div className="px-3 py-4 text-center text-xs text-neutral-400">
-                  No classes assigned to teachers yet
-                </div>
-              ) : (
-                batchClasses.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.class}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">
-            Subject
-          </Label>
-          <Select
-            value={batchForm.subject_id}
-            onValueChange={(val) => setBatchForm({ ...batchForm, subject_id: val })}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder={loadingBatchOptions ? "Loading…" : "Select a subject"} />
-            </SelectTrigger>
-            <SelectContent>
-              {batchSubjects.length === 0 ? (
-                <div className="px-3 py-4 text-center text-xs text-neutral-400">
-                  No subjects assigned to teachers yet
-                </div>
-              ) : (
-                batchSubjects.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.code ? `${s.code} – ${s.name}` : s.name}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Description */}
-      <div className="space-y-1.5">
-        <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">
-          Description
-        </Label>
-        <Textarea
-          placeholder="Optional notes about this batch…"
-          rows={2}
-          className="resize-none"
-          value={batchForm.description}
-          onChange={(e) => setBatchForm({ ...batchForm, description: e.target.value })}
-        />
-      </div>
-
-      {/* Start + End Date */}
-      <div className="grid grid-cols-2 gap-3.5">
-        <div className="space-y-1.5">
-          <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">
-            Start Date
-          </Label>
-          <Input
-            type="date"
-            value={batchForm.start_date}
-            onChange={(e) => setBatchForm({ ...batchForm, start_date: e.target.value })}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">
-            End Date
-          </Label>
-          <Input
-            type="date"
-            value={batchForm.end_date}
-            onChange={(e) => setBatchForm({ ...batchForm, end_date: e.target.value })}
-          />
-        </div>
-      </div>
-
-      {/* Max Students */}
-      <div className="space-y-1.5">
-        <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">
-          Max Students
-        </Label>
-        <Input
-          type="number"
-          min={1}
-          placeholder="e.g. 30"
-          value={batchForm.max_students}
-          onChange={(e) => setBatchForm({ ...batchForm, max_students: e.target.value })}
-        />
-      </div>
-    </div>
-
-    <div className="flex justify-end gap-2.5 pt-1">
-      <Button
-        variant="outline"
-        onClick={() => {
-          setAddBatchOpen(false);
-          setBatchForm(EMPTY_BATCH_FORM);
+      {/* ── Add Batch Modal ── */}
+      <Dialog
+        open={addBatchOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAddBatchOpen(false);
+            setBatchForm(EMPTY_BATCH_FORM);
+          }
         }}
       >
-        Cancel
-      </Button>
-      <Button onClick={handleAddBatch} disabled={addingBatch}>
-        {addingBatch ? "Creating…" : "Create Batch"}
-      </Button>
-    </div>
-  </DialogContent>
-</Dialog>
+        <DialogContent className="sm:max-w-[540px]">
+          <DialogHeader>
+            <DialogTitle>Add New Batch</DialogTitle>
+          </DialogHeader>
+
+          <div className="font-mono text-[11px] text-neutral-500 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2.5 leading-relaxed">
+            ◈ A batch is a time-bound group within a class — e.g.{" "}
+            <span className="text-edu-600 font-semibold">Morning Batch</span>,{" "}
+            <span className="text-edu-600 font-semibold">2024 Batch</span>, or{" "}
+            <span className="text-edu-600 font-semibold">Section A</span>. Only
+            classes and subjects{" "}
+            <span className="text-edu-600 font-semibold">
+              assigned to teachers
+            </span>{" "}
+            are shown.
+          </div>
+
+          <div className="space-y-4">
+            {/* Batch Name */}
+            <div className="space-y-1.5">
+              <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">
+                Batch Name *
+              </Label>
+              <Input
+                placeholder="e.g. Morning Batch, 2024 Batch, Section A"
+                value={batchForm.name}
+                onChange={(e) =>
+                  setBatchForm({ ...batchForm, name: e.target.value })
+                }
+              />
+            </div>
+
+            {/* Class + Subject side by side */}
+            <div className="grid grid-cols-2 gap-3.5">
+              <div className="space-y-1.5">
+                <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">
+                  Class *
+                </Label>
+                <Select
+                  value={batchForm.class_id}
+                  onValueChange={(val) =>
+                    setBatchForm({ ...batchForm, class_id: val })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={
+                        loadingBatchOptions ? "Loading…" : "Select a class"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {batchClasses.length === 0 ? (
+                      <div className="px-3 py-4 text-center text-xs text-neutral-400">
+                        No classes assigned to teachers yet
+                      </div>
+                    ) : (
+                      batchClasses.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.class}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">
+                  Subject
+                </Label>
+                <Select
+                  value={batchForm.subject_id}
+                  onValueChange={(val) =>
+                    setBatchForm({ ...batchForm, subject_id: val })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={
+                        loadingBatchOptions ? "Loading…" : "Select a subject"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {batchSubjects.length === 0 ? (
+                      <div className="px-3 py-4 text-center text-xs text-neutral-400">
+                        No subjects assigned to teachers yet
+                      </div>
+                    ) : (
+                      batchSubjects.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.code ? `${s.code} – ${s.name}` : s.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-1.5">
+              <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">
+                Description
+              </Label>
+              <Textarea
+                placeholder="Optional notes about this batch…"
+                rows={2}
+                className="resize-none"
+                value={batchForm.description}
+                onChange={(e) =>
+                  setBatchForm({ ...batchForm, description: e.target.value })
+                }
+              />
+            </div>
+
+            {/* Start + End Date */}
+            <div className="grid grid-cols-2 gap-3.5">
+              <div className="space-y-1.5">
+                <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">
+                  Start Date
+                </Label>
+                <Input
+                  type="date"
+                  value={batchForm.start_date}
+                  onChange={(e) =>
+                    setBatchForm({ ...batchForm, start_date: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">
+                  End Date
+                </Label>
+                <Input
+                  type="date"
+                  value={batchForm.end_date}
+                  onChange={(e) =>
+                    setBatchForm({ ...batchForm, end_date: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            {/* Max Students */}
+            <div className="space-y-1.5">
+              <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">
+                Max Students
+              </Label>
+              <Input
+                type="number"
+                min={1}
+                placeholder="e.g. 30"
+                value={batchForm.max_students}
+                onChange={(e) =>
+                  setBatchForm({ ...batchForm, max_students: e.target.value })
+                }
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2.5 pt-1">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setAddBatchOpen(false);
+                setBatchForm(EMPTY_BATCH_FORM);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleAddBatch} disabled={addingBatch}>
+              {addingBatch ? "Creating…" : "Create Batch"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Add Subject Modal ── */}
       <Dialog
