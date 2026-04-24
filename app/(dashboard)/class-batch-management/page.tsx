@@ -73,6 +73,7 @@ type BatchRecord = {
   created_at: string;
   class: { id: string; class: string } | null;
   subject: { id: string; name: string; code: string | null } | null;
+  teacher: { id: string; name: string } | null;
 };
 
 type SubjectRecord = {
@@ -95,6 +96,7 @@ type BatchForm = {
   name: string;
   class_id: string;
   subject_id: string;
+  teacher_id: string;
   description: string;
   start_date: string;
   end_date: string;
@@ -119,6 +121,7 @@ const EMPTY_BATCH_FORM: BatchForm = {
   name: "",
   class_id: "",
   subject_id: "",
+  teacher_id: "",
   description: "",
   start_date: "",
   end_date: "",
@@ -239,6 +242,9 @@ export default function ClassBatchSubjectPage() {
   const [addingBatch, setAddingBatch] = useState(false);
   const [batchSubjects, setBatchSubjects] = useState<SubjectRecord[]>([]);
   const [batchClasses, setBatchClasses] = useState<ClassRecord[]>([]);
+  const [batchTeacherOptions, setBatchTeacherOptions] = useState<{ id: string; name: string }[]>([]);
+  const [loadingTeachers, setLoadingTeachers] = useState(false);
+  const [autoTeacherName, setAutoTeacherName] = useState<string | null>(null);
   const [loadingBatchOptions, setLoadingBatchOptions] = useState(false);
 
   // ── Subjects state ───────────────────────────────────────────────────────
@@ -319,7 +325,8 @@ export default function ClassBatchSubjectPage() {
         start_date, end_date, max_students,
         is_active, created_at,
         class:class_id ( id, class ),
-        subject:subject_id ( id, name, code )
+        subject:subject_id ( id, name, code ),
+        teacher:teacher_id ( id, name )
       `,
       )
       .order("created_at", { ascending: false });
@@ -363,59 +370,110 @@ export default function ClassBatchSubjectPage() {
   }, [fetchSubjects]);
 
   // ── Fetch classes & subjects that are assigned to teachers ───────────────
-  const fetchBatchOptions = useCallback(async () => {
-    setLoadingBatchOptions(true);
+const fetchBatchOptions = useCallback(async () => {
+  setLoadingBatchOptions(true);
 
-    // Get all class_ids that appear in teacher_classes
-    const { data: tcRows } = await supabase
-      .from("teacher_classes")
-      .select("class_id");
+  // Get all class_ids assigned to teachers via teacher_classes
+  const { data: tcRows } = await supabase
+    .from("teacher_classes")
+    .select("class_id");
 
-    // Get all subject_ids that appear in teachers
-    const { data: teacherRows } = await supabase
-      .from("teachers")
-      .select("subject_id")
-      .not("subject_id", "is", null);
+  // Get all subject_ids assigned to teachers via teacher_subjects
+  const { data: tsRows } = await supabase
+    .from("teacher_subjects")
+    .select("subject_id");
 
-    const assignedClassIds = [
-      ...new Set((tcRows ?? []).map((r) => r.class_id)),
-    ];
-    const assignedSubjectIds = [
-      ...new Set((teacherRows ?? []).map((r) => r.subject_id).filter(Boolean)),
-    ];
+  const assignedClassIds   = [...new Set((tcRows ?? []).map((r) => r.class_id))];
+  const assignedSubjectIds = [...new Set((tsRows ?? []).map((r) => r.subject_id))];
 
-    if (assignedClassIds.length > 0) {
-      const { data } = await supabase
-        .from("class")
-        .select("id, class, description, max_students, is_active, created_at")
-        .in("id", assignedClassIds)
-        .eq("is_active", true)
-        .order("class", { ascending: true });
-      setBatchClasses(
-        (data ?? []).map((c) => ({ ...c, student_count: 0, batch_count: 0 })),
-      );
-    } else {
-      setBatchClasses([]);
-    }
+  if (assignedClassIds.length > 0) {
+    const { data } = await supabase
+      .from("class")
+      .select("id, class, description, max_students, is_active, created_at")
+      .in("id", assignedClassIds)
+      .eq("is_active", true)
+      .order("class", { ascending: true });
+    setBatchClasses(
+      (data ?? []).map((c) => ({ ...c, student_count: 0, batch_count: 0 })),
+    );
+  } else {
+    setBatchClasses([]);
+  }
 
-    if (assignedSubjectIds.length > 0) {
-      const { data } = await supabase
-        .from("subject")
-        .select("id, name, code, description, is_active, created_at")
-        .in("id", assignedSubjectIds as string[])
-        .eq("is_active", true)
-        .order("name", { ascending: true });
-      setBatchSubjects((data as SubjectRecord[]) ?? []);
-    } else {
-      setBatchSubjects([]);
-    }
+  if (assignedSubjectIds.length > 0) {
+    const { data } = await supabase
+      .from("subject")
+      .select("id, name, code, description, is_active, created_at")
+      .in("id", assignedSubjectIds)
+      .eq("is_active", true)
+      .order("name", { ascending: true });
+    setBatchSubjects((data as SubjectRecord[]) ?? []);
+  } else {
+    setBatchSubjects([]);
+  }
 
-    setLoadingBatchOptions(false);
-  }, []);
-
+  setLoadingBatchOptions(false);
+}, []);
   useEffect(() => {
     fetchBatchOptions();
   }, [fetchBatchOptions]);
+
+  // ── Fetch matching teachers for class + subject combo ────────────────────
+  const fetchMatchingTeachers = useCallback(async (class_id: string, subject_id: string) => {
+    if (!class_id && !subject_id) {
+      setBatchTeacherOptions([]);
+      setAutoTeacherName(null);
+      setBatchForm((prev) => ({ ...prev, teacher_id: "" }));
+      return;
+    }
+
+    setLoadingTeachers(true);
+
+    const { data: tcRows } = await supabase
+      .from("teacher_classes")
+      .select("teacher_id")
+      .eq("class_id", class_id);
+
+    const classTeacherIds = (tcRows ?? []).map((r) => r.teacher_id);
+
+    if (classTeacherIds.length === 0) {
+      setBatchTeacherOptions([]);
+      setAutoTeacherName(null);
+      setBatchForm((prev) => ({ ...prev, teacher_id: "" }));
+      setLoadingTeachers(false);
+      return;
+    }
+
+    let teacherQuery = supabase
+      .from("teacher_subjects")
+      .select("teacher_id, teacher:teacher_id ( id, name )")
+      .in("teacher_id", classTeacherIds);
+
+    if (subject_id) {
+      teacherQuery = teacherQuery.eq("subject_id", subject_id);
+    }
+
+    const { data: tsRows } = await teacherQuery;
+
+    const matched = (tsRows ?? []).map((r: any) => ({
+      id: r.teacher.id,
+      name: r.teacher.name,
+    }));
+
+    const unique = [...new Map(matched.map((t) => [t.id, t])).values()];
+
+    setBatchTeacherOptions(unique);
+
+    if (unique.length === 1) {
+      setAutoTeacherName(unique[0].name);
+      setBatchForm((prev) => ({ ...prev, teacher_id: unique[0].id }));
+    } else {
+      setAutoTeacherName(null);
+      setBatchForm((prev) => ({ ...prev, teacher_id: "" }));
+    }
+
+    setLoadingTeachers(false);
+  }, []);
 
   // ── Add class ────────────────────────────────────────────────────────────
   const handleAddClass = async () => {
@@ -503,7 +561,8 @@ export default function ClassBatchSubjectPage() {
     const { error } = await supabase.from("batch").insert({
       name: batchForm.name.trim(),
       class_id: batchForm.class_id,
-      subject_id: batchForm.subject_id || null, // ← add this
+      subject_id: batchForm.subject_id || null,
+      teacher_id: batchForm.teacher_id || null,
       description: batchForm.description || null,
       start_date: batchForm.start_date || null,
       end_date: batchForm.end_date || null,
@@ -516,6 +575,8 @@ export default function ClassBatchSubjectPage() {
       toast.success(`Batch "${batchForm.name}" created successfully`);
       setAddBatchOpen(false);
       setBatchForm(EMPTY_BATCH_FORM);
+      setBatchTeacherOptions([]);
+      setAutoTeacherName(null);
       fetchBatches();
       fetchClasses();
     }
@@ -882,6 +943,7 @@ export default function ClassBatchSubjectPage() {
                           "Batch Name",
                           "Class",
                           "Subject",
+                          "Teacher",
                           "Start Date",
                           "End Date",
                           "Max Students",
@@ -900,7 +962,7 @@ export default function ClassBatchSubjectPage() {
                     <TableBody>
                       {batches.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={9}>
+                          <TableCell colSpan={10}>
                             <div className="py-14 text-center">
                               <p className="text-3xl opacity-30 mb-2">◈</p>
                               <p className="text-[13px] text-neutral-500">
@@ -940,6 +1002,18 @@ export default function ClassBatchSubjectPage() {
                                 <span className="text-neutral-300">—</span>
                               )}
                             </TableCell>
+
+                            {/* ── Teacher cell ── */}
+                            <TableCell>
+                              {b.teacher ? (
+                                <span className="text-xs font-semibold bg-neutral-100 text-neutral-700 border border-neutral-200 px-2.5 py-1 rounded-full whitespace-nowrap">
+                                  {b.teacher.name}
+                                </span>
+                              ) : (
+                                <span className="text-neutral-300">—</span>
+                              )}
+                            </TableCell>
+
                             <TableCell className="font-mono text-[11px] text-neutral-500 whitespace-nowrap">
                               {formatDate(b.start_date)}
                             </TableCell>
@@ -1391,13 +1465,14 @@ export default function ClassBatchSubjectPage() {
       </Dialog>
 
       {/* ── Add Batch Modal ── */}
-      {/* ── Add Batch Modal ── */}
       <Dialog
         open={addBatchOpen}
         onOpenChange={(open) => {
           if (!open) {
             setAddBatchOpen(false);
             setBatchForm(EMPTY_BATCH_FORM);
+            setBatchTeacherOptions([]);
+            setAutoTeacherName(null);
           }
         }}
       >
@@ -1441,9 +1516,10 @@ export default function ClassBatchSubjectPage() {
                 </Label>
                 <Select
                   value={batchForm.class_id}
-                  onValueChange={(val) =>
-                    setBatchForm({ ...batchForm, class_id: val })
-                  }
+                  onValueChange={(val) => {
+                    setBatchForm((prev) => ({ ...prev, class_id: val, teacher_id: "" }));
+                    fetchMatchingTeachers(val, batchForm.subject_id);
+                  }}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue
@@ -1474,9 +1550,10 @@ export default function ClassBatchSubjectPage() {
                 </Label>
                 <Select
                   value={batchForm.subject_id}
-                  onValueChange={(val) =>
-                    setBatchForm({ ...batchForm, subject_id: val })
-                  }
+                  onValueChange={(val) => {
+                    setBatchForm((prev) => ({ ...prev, subject_id: val, teacher_id: "" }));
+                    fetchMatchingTeachers(batchForm.class_id, val);
+                  }}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue
@@ -1501,6 +1578,52 @@ export default function ClassBatchSubjectPage() {
                 </Select>
               </div>
             </div>
+
+            {/* Teacher — auto-filled or selection */}
+            {(batchForm.class_id || batchForm.subject_id) && (
+              <div className="space-y-1.5">
+                <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500">
+                  Teacher
+                </Label>
+                {loadingTeachers ? (
+                  <div className="h-9 rounded-md border border-neutral-200 bg-neutral-50 flex items-center px-3">
+                    <span className="text-xs text-neutral-400 animate-pulse">Finding teacher…</span>
+                  </div>
+                ) : autoTeacherName ? (
+                  /* Single teacher — auto-filled read-only display */
+                  <div className="h-9 rounded-md border border-success-400/50 bg-success-50 flex items-center justify-between px-3">
+                    <span className="text-sm font-semibold text-success-700">{autoTeacherName}</span>
+                    <span className="font-mono text-[10px] text-success-600 bg-success-100 border border-success-400/30 px-1.5 py-0.5 rounded-full">
+                      Auto-filled
+                    </span>
+                  </div>
+                ) : batchTeacherOptions.length > 1 ? (
+                  /* Multiple teachers — show dropdown */
+                  <Select
+                    value={batchForm.teacher_id}
+                    onValueChange={(val) => setBatchForm((prev) => ({ ...prev, teacher_id: val }))}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a teacher" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {batchTeacherOptions.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : batchTeacherOptions.length === 0 && (batchForm.class_id || batchForm.subject_id) ? (
+                  /* No matching teacher found */
+                  <div className="h-9 rounded-md border border-warning-400/50 bg-warning-50 flex items-center px-3">
+                    <span className="text-xs text-warning-700">
+                      No teacher found for this class/subject combination
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            )}
 
             {/* Description */}
             <div className="space-y-1.5">
@@ -1569,6 +1692,8 @@ export default function ClassBatchSubjectPage() {
               onClick={() => {
                 setAddBatchOpen(false);
                 setBatchForm(EMPTY_BATCH_FORM);
+                setBatchTeacherOptions([]);
+                setAutoTeacherName(null);
               }}
             >
               Cancel
