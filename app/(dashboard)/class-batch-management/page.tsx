@@ -782,7 +782,6 @@ const fetchBatchOptions = useCallback(async () => {
                           "Class Name",
                           "Description",
                           "Max Students",
-                          "Enrolled",
                           "Batches",
                           "Status",
                           "Actions",
@@ -799,7 +798,7 @@ const fetchBatchOptions = useCallback(async () => {
                     <TableBody>
                       {classes.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={8}>
+                          <TableCell colSpan={7}>
                             <div className="py-14 text-center">
                               <p className="text-3xl opacity-30 mb-2">◈</p>
                               <p className="text-[13px] text-neutral-500">
@@ -823,11 +822,6 @@ const fetchBatchOptions = useCallback(async () => {
                             </TableCell>
                             <TableCell className="font-mono text-[12px] text-neutral-600">
                               {c.max_students ?? "—"}
-                            </TableCell>
-                            <TableCell>
-                              <span className="font-mono text-[11px] font-semibold bg-edu-50 text-edu-700 border border-edu-200/70 px-2 py-0.5 rounded-full">
-                                {c.student_count}
-                              </span>
                             </TableCell>
                             <TableCell>
                               <span className="font-mono text-[11px] font-semibold bg-neutral-100 text-neutral-600 border border-neutral-200 px-2 py-0.5 rounded-full">
