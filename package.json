@@ -1,0 +1,16 @@
+{
+  "name": "class-management",
+  "private": true,
+  "packageManager": "pnpm@10.30.3",
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:admin": "turbo run dev --filter=admin",
+    "dev:teacher": "turbo run dev --filter=teacher",
+    "dev:student": "turbo run dev --filter=student",
+    "build": "turbo run build",
+    "lint": "turbo run lint"
+  },
+  "devDependencies": {
+    "turbo": "^2.9.6"
+  }
+}
