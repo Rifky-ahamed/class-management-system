@@ -474,7 +474,7 @@ const fetchStudentSummaries = useCallback(async () => {
 
             <div className="flex items-center gap-2">
               <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-neutral-500 whitespace-nowrap">
-                FROM
+                From
               </Label>
               <Input type="date" className="w-[145px]" value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)} />
