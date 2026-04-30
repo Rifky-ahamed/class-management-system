@@ -15,7 +15,7 @@ const AdminDashboardView = async () => {
   const stats = await getDashboardStats();
 
   return (
-    // ✅ No h-[calc(...)], no overflow-hidden — layout.tsx owns the scroll
+    
     <div className="flex flex-col gap-6 p-6">
 
       {/* ── Hero Header ── */}
