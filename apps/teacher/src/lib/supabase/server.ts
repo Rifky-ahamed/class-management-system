@@ -25,7 +25,7 @@ export const createClient = async () => {
         },
       },
       cookieOptions: {
-        name: "sb-admin-auth-token",
+        name: "sb-teacher-auth-token",
       },
     },
   );
