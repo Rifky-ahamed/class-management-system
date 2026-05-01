@@ -46,12 +46,18 @@ export function AdminHeader() {
   const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
 
   return (
-    <header className="h-20 fixed top-0 left-64 w-[calc(100%-16rem)] z-10 bg-linear-to-r from-edu-900 to-edu-800 dark:from-card dark:to-card shadow-lg border-b border-white/10 dark:border-white/5 backdrop-blur-sm">
+    <header className="
+      h-20 fixed top-0 left-64 w-[calc(100%-16rem)] z-10
+      bg-linear-to-r from-edu-900 to-edu-800
+      dark:from-card dark:to-card
+      shadow-lg border-b border-white/10 dark:border-white/5
+      backdrop-blur-sm
+    ">
       <div className="flex h-20 items-center justify-between px-6">
 
         {/* Left — page title */}
         <div className="flex items-center space-x-4">
-           <h1 className="text-base font-semibold text-white/90 tracking-wide">
+          <h1 className="text-base font-semibold text-white/90 tracking-wide">
             Dashboard
           </h1>
         </div>
@@ -66,7 +72,13 @@ export function AdminHeader() {
             className="relative hover:bg-white/10 text-white/70 hover:text-white transition-all duration-200 rounded-lg h-10 w-10 group"
           >
             <Bell className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
-            <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-danger-500 text-white border-2 border-edu-900 dark:border-card animate-pulse shadow-md">
+            <Badge className="
+              absolute -top-1 -right-1 h-5 w-5
+              flex items-center justify-center p-0 text-[10px]
+              bg-danger-500 text-white
+              border-2 border-edu-900 dark:border-card
+              animate-pulse shadow-md
+            ">
               3
             </Badge>
           </Button>
@@ -86,14 +98,33 @@ export function AdminHeader() {
           {/* ── User menu with avatar + email ── */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2.5 pl-1 pr-3 py-1 rounded-xl hover:bg-white/10 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-white/30 group">
+              <button className="
+                flex items-center gap-2.5 pl-1 pr-3 py-1
+                rounded-xl
+                hover:bg-white/10
+                transition-all duration-200
+                outline-none focus-visible:ring-2 focus-visible:ring-white/30
+                group
+              ">
                 {/* Avatar circle */}
-                <div className="h-8 w-8 rounded-full bg-edu-500 dark:bg-edu-600 flex items-center justify-center text-white text-xs font-semibold shrink-0 group-hover:scale-105 transition-transform duration-200">
+                <div className="
+                  h-8 w-8 rounded-full
+                  bg-edu-500 dark:bg-edu-600
+                  flex items-center justify-center
+                  text-white text-xs font-semibold
+                  shrink-0
+                  group-hover:scale-105 transition-transform duration-200
+                ">
                   {userEmail ? getInitials(userEmail) : "A"}
                 </div>
 
                 {/* Email label */}
-                <span className="text-sm text-white/80 group-hover:text-white transition-colors duration-200 hidden sm:block max-w-[160px] truncate">
+                <span className="
+                  text-sm text-white/80 group-hover:text-white
+                  transition-colors duration-200
+                  hidden sm:block
+                  max-w-[160px] truncate
+                ">
                   {userEmail ?? "Loading..."}
                 </span>
               </button>
