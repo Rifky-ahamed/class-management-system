@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NexusCore | Admin Core",
-  description: "Admin Core - v1.0.0",
+  title: "NexusCore | Student's Desk",
+  description: "Student's Desk - v1.0.0",
 };
 
 const RootLayout = ({
