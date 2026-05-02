@@ -6,29 +6,30 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  BarChart3,
-  Landmark,
   LayoutDashboard,
   LogOut,
   GraduationCap,
-  Settings,
   CalendarCheck,
   CircleUser,
   Calendar,
-  CreditCard,
-  Wrench,
+  ClipboardList,
+  FolderOpen,
+  FileSpreadsheet,
+  MessageSquare,
+  Megaphone,
 } from "lucide-react";
 
 const navigation = [
-  { name: "Dashboard",             href: "/",                       icon: LayoutDashboard },
-  { name: "Attendance",       href: "/attendance",    icon: CalendarCheck      },
-  { name: "Manage Teachers",       href: "/manage-teachers",    icon: GraduationCap   },
-  { name: "Class and Batch Management",    href: "/class-batch-management", icon: Landmark        },
-  { name: "Manage Class Schedules",href: "/class-schedules",    icon: Calendar        },
-  { name: "Manage Payments",       href: "/payments",           icon: CreditCard      },
-  { name: "Requests",              href: "/requests",        icon: Wrench          },
-  { name: "Reports",               href: "/reports",         icon: BarChart3       },
-  { name: "Settings",              href: "/settings",        icon: Settings        },
+  { name: "Dashboard",             href: "/",               icon: LayoutDashboard },
+  { name: "My Schedule",           href: "/schedule",       icon: Calendar },
+  { name: "My Subjects & Classes", href: "/classes",        icon: GraduationCap },
+  { name: "Mark Attendance",       href: "/attendance",     icon: CalendarCheck },
+  { name: "Assignments",           href: "/assignments",    icon: ClipboardList },
+  { name: "Study Materials",       href: "/materials",      icon: FolderOpen },
+  { name: "Marks & Grades",        href: "/grades",         icon: FileSpreadsheet },
+  { name: "Submit Report",         href: "/reports",        icon: MessageSquare },
+  { name: "Notices",               href: "/notices",        icon: Megaphone },
+  { name: "My Profile",            href: "/profile",        icon: CircleUser },
 ];
 
 export const AdminSidebar = () => {
@@ -55,10 +56,10 @@ export const AdminSidebar = () => {
             {/* text */}
             <div>
               <span className="font-bold text-sm text-white block leading-tight">
-                Your Business Name
+                Teacher Portal
               </span>
               <p className="text-[10px] text-edu-300 font-medium mt-0.5">
-                Admin Core v1.0.0
+                Class Management System
               </p>
             </div>
           </div>
