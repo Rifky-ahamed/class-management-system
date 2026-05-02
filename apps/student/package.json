@@ -13,6 +13,8 @@
     "@class/types": "workspace:*",
     "@class/ui": "workspace:*",
     "@class/utils": "workspace:*",
+    "@radix-ui/react-avatar": "^1.1.11",
+    "@radix-ui/react-progress": "^1.1.8",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.105.1",
     "class-variance-authority": "^0.7.1",

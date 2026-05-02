@@ -14,7 +14,7 @@ import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export function AdminHeader() {
+export function StudentHeader() {
   const router = useRouter();
   const supabase = createClient();
   const { theme, setTheme } = useTheme();
@@ -137,7 +137,7 @@ export function AdminHeader() {
               {/* User info header */}
               <div className="px-3 py-3 bg-edu-50 dark:bg-edu-100/10 border-b border-border">
                 <p className="text-sm font-semibold text-(--text-heading)">
-                  Admin User
+                  Student
                 </p>
                 <p className="text-xs text-(--text-secondary) truncate">
                   {userEmail ?? "—"}

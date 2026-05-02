@@ -4,6 +4,10 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "@supabase/supabase-js": "^2"
+    "@supabase/supabase-js": "^2",
+    "@class/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20"
   }
 }

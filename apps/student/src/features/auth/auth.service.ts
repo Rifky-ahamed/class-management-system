@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
-const checkAdminAccess = async () => {
+const checkStudentAccess = async () => {
   const supabase = await createClient();
 
   const {
@@ -15,4 +15,4 @@ const checkAdminAccess = async () => {
   return user;
 };
 
-export { checkAdminAccess };
+export { checkStudentAccess };

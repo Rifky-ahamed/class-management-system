@@ -17,22 +17,26 @@ import {
   Calendar,
   CreditCard,
   Wrench,
+  BookOpen,
+  ClipboardList,
+  Bell,
+  User,
+  FileText
 } from "lucide-react";
 
 const navigation = [
-  { name: "Dashboard",             href: "/",                       icon: LayoutDashboard },
-  { name: "Manage Students",       href: "/manage-students",    icon: CircleUser      },
-  { name: "Manage Teachers",       href: "/manage-teachers",    icon: GraduationCap   },
-  { name: "Class and Batch Management",    href: "/class-batch-management", icon: Landmark        },
-  { name: "Manage Class Schedules",href: "/class-schedules",    icon: Calendar        },
-  { name: "Manage Attendance",     href: "/attendance",         icon: CalendarCheck   },
-  { name: "Manage Payments",       href: "/payments",           icon: CreditCard      },
-  { name: "Requests",              href: "/requests",        icon: Wrench          },
-  { name: "Reports",               href: "/reports",         icon: BarChart3       },
-  { name: "Settings",              href: "/settings",        icon: Settings        },
+  { name: "Dashboard",       href: "/",            icon: LayoutDashboard },
+  { name: "My Schedule",     href: "/schedule",    icon: Calendar        },
+  { name: "My Attendance",   href: "/attendance",  icon: CalendarCheck   },
+  { name: "Assignments",     href: "/assignments", icon: ClipboardList   },
+  { name: "Study Materials", href: "/materials",   icon: BookOpen        },
+  { name: "Exams & Results", href: "/exams",       icon: FileText        },
+  { name: "Fee Status",      href: "/fees",        icon: CreditCard      },
+  { name: "Notices",         href: "/notices",     icon: Bell            },
+  { name: "My Profile",      href: "/profile",     icon: User            },
 ];
 
-export const AdminSidebar = () => {
+export const StudentSidebar = () => {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
