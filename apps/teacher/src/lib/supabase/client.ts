@@ -8,6 +8,9 @@ export function createClient() {
       cookieOptions: {
         name: "sb-teacher-auth-token",
       },
+      global: {
+        fetch: (url, options) => fetch(url, { ...options, cache: "no-store" }),
+      },
     }
   );
 }

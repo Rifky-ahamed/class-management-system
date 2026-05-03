@@ -35,7 +35,7 @@ type Report = {
 export default function ReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
-  const [teacherId, setTeacherId] = useState<string | null>(null);
+  const [studentId, setStudentId] = useState<string | null>(null);
 
   // Form State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -55,18 +55,18 @@ export default function ReportsPage() {
       return;
     }
 
-    const { data: teacherData } = await supabase
-      .from("teachers")
+    const { data: studentData } = await supabase
+      .from("student")
       .select("id")
       .eq("email", user.email)
       .single();
 
-    if (!teacherData) {
+    if (!studentData) {
       setLoading(false);
       return;
     }
 
-    setTeacherId(teacherData.id);
+    setStudentId(studentData.id);
 
     // Fetch reports/requests
     const { data: reportData } = await supabase
@@ -74,8 +74,8 @@ export default function ReportsPage() {
       .select(`
         id, category, subject, message, status, priority, response, created_at
       `)
-      .eq("requester_type", "teacher")
-      .eq("teacher_id", teacherData.id)
+      .eq("requester_type", "student")
+      .eq("student_id", studentData.id)
       .order("created_at", { ascending: false });
 
     if (reportData) {
@@ -91,12 +91,12 @@ export default function ReportsPage() {
 
   const handleCreateReport = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!teacherId || !formData.subject || !formData.message) return;
+    if (!studentId || !formData.subject || !formData.message) return;
 
     setIsSubmitting(true);
     const payload = {
-      requester_type: "teacher",
-      teacher_id: teacherId,
+      requester_type: "student",
+      student_id: studentId,
       category: formData.category,
       subject: formData.subject,
       message: formData.message,

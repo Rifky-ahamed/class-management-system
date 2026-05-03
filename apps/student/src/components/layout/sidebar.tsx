@@ -21,7 +21,9 @@ import {
   ClipboardList,
   Bell,
   User,
-  FileText
+  FileText,
+  MessageSquare,
+  MessageCircle
 } from "lucide-react";
 
 const navigation = [
@@ -32,6 +34,8 @@ const navigation = [
   { name: "Study Materials", href: "/materials",   icon: BookOpen        },
   { name: "Exams & Results", href: "/exams",       icon: FileText        },
   { name: "Fee Status",      href: "/fees",        icon: CreditCard      },
+  { name: "Submit Report",   href: "/reports",     icon: MessageSquare   },
+  { name: "Messages",        href: "/messages",    icon: MessageCircle   },
   { name: "Notices",         href: "/notices",     icon: Bell            },
   { name: "My Profile",      href: "/profile",     icon: User            },
 ];
@@ -60,10 +64,10 @@ export const StudentSidebar = () => {
             {/* text */}
             <div>
               <span className="font-bold text-sm text-white block leading-tight">
-                Your Business Name
+                Student portal
               </span>
               <p className="text-[10px] text-edu-300 font-medium mt-0.5">
-                Admin Core v1.0.0
+                Class Managment System
               </p>
             </div>
           </div>

@@ -17,6 +17,7 @@ import {
   FileSpreadsheet,
   MessageSquare,
   Megaphone,
+  MessageCircle,
 } from "lucide-react";
 
 const navigation = [
@@ -28,6 +29,7 @@ const navigation = [
   { name: "Study Materials",       href: "/materials",      icon: FolderOpen },
   { name: "Marks & Grades",        href: "/grades",         icon: FileSpreadsheet },
   { name: "Submit Report",         href: "/reports",        icon: MessageSquare },
+  { name: "Messages",              href: "/messages",       icon: MessageCircle },
   { name: "Notices",               href: "/notices",        icon: Megaphone },
   { name: "My Profile",            href: "/profile",        icon: CircleUser },
 ];

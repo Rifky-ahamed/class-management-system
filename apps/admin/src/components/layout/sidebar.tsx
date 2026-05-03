@@ -17,6 +17,7 @@ import {
   Calendar,
   CreditCard,
   Wrench,
+  Megaphone,
 } from "lucide-react";
 
 const navigation = [
@@ -29,6 +30,7 @@ const navigation = [
   { name: "Manage Payments",       href: "/payments",           icon: CreditCard      },
   { name: "Requests",              href: "/requests",        icon: Wrench          },
   { name: "Reports",               href: "/reports",         icon: BarChart3       },
+  { name: "Notices",               href: "/notices",         icon: Megaphone       },
   { name: "Settings",              href: "/settings",        icon: Settings        },
 ];
 
@@ -56,10 +58,10 @@ export const AdminSidebar = () => {
             {/* text */}
             <div>
               <span className="font-bold text-sm text-white block leading-tight">
-                Your Business Name
+                Admin Portal
               </span>
               <p className="text-[10px] text-edu-300 font-medium mt-0.5">
-                Admin Core v1.0.0
+                Class Managment System
               </p>
             </div>
           </div>
