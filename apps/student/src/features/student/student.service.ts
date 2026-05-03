@@ -215,11 +215,15 @@ export async function getStudyMaterials() {
   if (!batchId) return [];
 
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("study_materials")
-    .select("*, subject(name)")
+    .select("*, teachers(name)")
     .eq("batch_id", batchId)
     .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching study materials:", error);
+  }
 
   return data || [];
 }

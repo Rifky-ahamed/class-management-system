@@ -51,7 +51,7 @@ export default async function MaterialsPage() {
                         {material.title}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        {material.subject?.name || "General"}
+                        {material.teachers?.name ? `By ${material.teachers.name}` : "General Material"}
                       </p>
                     </div>
                   </div>

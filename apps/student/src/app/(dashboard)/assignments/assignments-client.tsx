@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +23,8 @@ type Assignment = {
   description: string;
 };
 
-export default function AssignmentsClient({ initialAssignments }: { initialAssignments: Assignment[] }) {
+export default function AssignmentsClient({ initialAssignments, studentId }: { initialAssignments: Assignment[], studentId: string }) {
+  const supabase = createClient();
   const [assignments, setAssignments] = useState<Assignment[]>(initialAssignments);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [submissionText, setSubmissionText] = useState("");
@@ -48,15 +50,39 @@ export default function AssignmentsClient({ initialAssignments }: { initialAssig
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // TODO: Handle file upload to storage bucket when configured in the future
+      let fileUrl = null;
+      if (file) {
+        fileUrl = `mock-upload/${file.name}`;
+      }
+
+      const payload = {
+        assignment_id: selectedAssignment.id,
+        student_id: studentId,
+        status: "submitted",
+        submission_content: submissionText || null,
+        file_url: fileUrl,
+        submitted_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase
+        .from("assignment_submissions")
+        .upsert(payload, { onConflict: "assignment_id,student_id" });
+
+      if (error) throw error;
+
       setAssignments(assignments.map(a => 
         a.id === selectedAssignment.id ? { ...a, status: "submitted" } : a
       ));
-      setIsSubmitting(false);
-      setIsOpen(false);
+      
       toast.success("Assignment submitted successfully!");
-    }, 1000);
+      setIsOpen(false);
+    } catch (err: any) {
+      toast.error("Failed to submit assignment: " + err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
